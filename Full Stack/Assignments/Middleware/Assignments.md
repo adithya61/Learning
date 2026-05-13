@@ -599,4 +599,40 @@ how Express actually works
 
 ```jsx
 
+const pipeline = (req, res, middlewares) => {
+  let curPos = -1;
+
+  const next = async (err) => {
+    if (err) {
+      let pos = curPos;
+      while (pos < middlewares.length) {
+        if (middlewares[pos].length === 4) {
+          curPos = pos;
+          await middlewares[pos](err, req, res, next);
+          break;
+        }
+        pos++;
+      }
+    } else {
+      curPos++;
+      if (curPos < middlewares.length) {
+        const f = middlewares[curPos];
+        await f(req, res, next);
+      }
+    }
+  };
+
+  next();
+};
+
+const req = { url: "/test" };
+const res = {};
+
+pipeline(req, res, [
+  (req, res, next) => { next(new Error('minor')); },
+  (req, res, next) => { console.log('should be skipped'); next(); },
+  (err, req, res, next) => { console.log('recovered'); next(); },
+  (req, res, next) => { console.log('normal flow resumed'); next(); },
+]);
+
 ```

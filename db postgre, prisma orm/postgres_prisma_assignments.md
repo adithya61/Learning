@@ -32,7 +32,12 @@ No Node.js yet. No Prisma yet. Just you, `psql`, and raw SQL. The goal is to und
 **Tasks:**
 
 1. Create a database: `createdb library_db`. Connect to it: `psql library_db`.
-2. Create a `books` table with these columns: `id` (SERIAL PRIMARY KEY), `title` (VARCHAR(255) NOT NULL), `author` (VARCHAR(255) NOT NULL), `published_year` (INTEGER), `available` (BOOLEAN DEFAULT true).
+2. Create a `books` table with these columns: 
+ `id` (SERIAL PRIMARY KEY),
+ `title` (VARCHAR(255) NOT NULL),
+  `author` (VARCHAR(255) NOT NULL), 
+  `published_year` (INTEGER), 
+  `available` (BOOLEAN DEFAULT true).
 3. Insert at least 5 books using `INSERT INTO`.
 4. Practice these queries one by one, understanding each output:
    - `SELECT * FROM books;`
@@ -61,6 +66,31 @@ No Node.js yet. No Prisma yet. Just you, `psql`, and raw SQL. The goal is to und
 - Add a `genre` column to the existing table using `ALTER TABLE books ADD COLUMN genre VARCHAR(100);`
 - Select only books where `published_year` is between 1990 and 2010 using `BETWEEN`
 
+#### Solution
+
+```
+-- create table books (
+-- 	id serial primary key,
+-- 	published_year int,
+-- 	title varchar(255) not null,
+-- 	author varchar(255),
+-- 	available boolean default true
+-- );
+
+-- insert into books (published_year, available, title, author)
+-- values 
+-- 	(1999, true, 'the beginners mind', 'miyamoto mushashi'),
+-- 	(2001, true, 'deep work', 'sigma range'),
+-- 	(1985, true, 'the five rings', 'albert'),
+-- 	(1980, true, 'influence', 'ron johnowick');
+
+
+-- select * from books;
+
+-- alter table books add column genre varchar(100);
+
+```
+
 ---
 
 ### PG-E2 — Data Types & Constraints
@@ -71,8 +101,17 @@ No Node.js yet. No Prisma yet. Just you, `psql`, and raw SQL. The goal is to und
 
 **Tasks:**
 
-1. Create a new database `constraints_db`. Create a `users` table with: `id` (UUID, use `gen_random_uuid()` as default), `email` (TEXT, UNIQUE, NOT NULL), `username` (VARCHAR(50), NOT NULL), `age` (INTEGER, CHECK age >= 13), `bio` (TEXT, nullable), `is_active` (BOOLEAN, NOT NULL, DEFAULT true), `created_at` (TIMESTAMPTZ, DEFAULT NOW()).
-2. Enable the UUID extension first: `CREATE EXTENSION IF NOT EXISTS "pgcrypto";`
+1. Create a new database `constraints_db`. Create a `users` table with: 
+`id` (UUID, use 
+`gen_random_uuid()` as default), 
+`email` (TEXT, UNIQUE, NOT NULL), 
+`username` (VARCHAR(50), NOT NULL), 
+`age` (INTEGER, CHECK age >= 13), 
+`bio` (TEXT, nullable), 
+`is_active` (BOOLEAN, NOT NULL, DEFAULT true), 
+`created_at` (TIMESTAMPTZ, DEFAULT NOW()).
+2. Enable the UUID extension first: 
+`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`
 3. Try to insert a user with a duplicate email. Observe the error message Postgres gives you. Write down what the error says.
 4. Try to insert a user with `age = 10`. Observe the CHECK constraint error.
 5. Try to insert a user with `email = NULL`. Observe the NOT NULL error.

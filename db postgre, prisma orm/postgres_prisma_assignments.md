@@ -89,6 +89,8 @@ No Node.js yet. No Prisma yet. Just you, `psql`, and raw SQL. The goal is to und
 
 -- alter table books add column genre varchar(100);
 
+Serial: if no input provided then assign numbers sequentially.
+
 ```
 
 ---
@@ -134,6 +136,51 @@ No Node.js yet. No Prisma yet. Just you, `psql`, and raw SQL. The goal is to und
 **Stretch goals:**
 - Add a constraint that `username` must be at least 3 characters: `CHECK (char_length(username) >= 3)`
 - Add a named constraint: `CONSTRAINT valid_age CHECK (age >= 13 AND age <= 120)` — understand why naming constraints helps error messages
+
+#### solution
+```
+-- create table users (
+-- 	id default gen_random_uuid() primary key,
+-- 	email text unique not null,
+-- 	username varchar(50) not  null,
+-- 	age integer check (age >= 13),
+-- 	bio text null,
+-- 	is_active boolean not null default true,
+-- 	created_at timestamptz default now()
+	
+-- );
+
+-- select * from users;
+
+-- insert into users (email, username, age) 
+-- values ('watson@emma.co', 'watson john', 16);
+
+-- delete from users where id = 'd98bd643-8aad-4f17-8d36-334cb6b6b851';
+
+-- insert into users (email, username, age, is_active) 
+-- values ('alex.jones@email.com', 'alex xu', 18, false),
+-- ('sam_design@email.com', 'sam', 22, true),
+-- ('chloe.hikes@email.com', 'chloe', 44, true);
+
+
+-- get users created within the last one hour
+-- select * from users where created_at >= now() - interval '1 hour';
+
+
+-- select * from users where is_active is true;
+-- select * from users where bio is null;
+
+
+-- Difference b/w text and varchar(50)
+-- 1. text has no limit on characters and varcahr(n) limits to n characters.
+-- 2. text is stored off table and contains only a pointer to the actual memory location of
+-- the stored text requires extra disk look up to fetch text, varchar(n) stored inline faster 
+-- fetch times and easier indexing.
+
+-- IS : used only as IS NULL || IS NOT NULL || IS TRUE
+-- cannot be used as IS 'xyz' (string or value).
+
+```
 
 ---
 

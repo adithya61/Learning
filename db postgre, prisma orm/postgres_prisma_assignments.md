@@ -216,6 +216,100 @@ Serial: if no input provided then assign numbers sequentially.
 - Add a `comments` table that references both `users` and `posts`. Practice the three-table relationship
 - Add `ON UPDATE CASCADE` and observe what happens when you update a user's `id`
 
+### Solution
+```
+/* 
+postgresql E-3.
+
+Create a new database relations_db. Create a users table (id, email, name). 
+Create a posts table: id, title, body, user_id (INTEGER REFERENCES users(id)), created_at.
+*/
+
+-- create table users (
+-- 	id uuid default gen_random_uuid() primary key,
+-- 	email varchar(255), 
+-- 	name varchar(50)
+-- );
+
+-- create table posts (
+-- 	id uuid default gen_random_uuid() primary key,
+-- 	title varchar(255), 
+-- 	body text,
+-- 	user_id uuid REFERENCES users(id),
+-- 	created_at timestamptz default now()
+
+-- );
+
+-- select * from users;
+-- select * from posts;
+
+-- insert into users (email, name)
+-- values ('aaravsharma@gmail.com', 'aarav sharma'),
+-- 	('priya.nair@example.com', 'priya malhotra'),
+-- 	('RahulVerma@gmail.com', 'Rahul Verma'),
+-- 	('SnehaIyer', 'Sneha Iyer');
+
+/* 
+Try to insert a post with a user_id that doesn't exist in users. 
+Observe the foreign key violation error.
+*/
+
+-- insert into posts (title, body, user_id)
+-- values ('rainy day', 'rain rain go away little jonny wants to play', 'd9e6d3e7-e2d9-40c2-b194-e35e53bce360')
+
+-- ERROR:  insert or update on table "posts" violates foreign key constraint.
+
+
+/*
+Insert 2 users and 3 posts each — total 6 posts.
+*/
+
+-- insert into posts (title, body, user_id)
+-- values ('Learning PostgreSQL', 'Today I learned how to create tables and define primary keys in PostgreSQL.', 'd9e6d3e7-e2d9-40c2-b154-e35e53bce360'),
+-- ('My First Blog Post', 'This is my very first blog post. I"m excited to learn backend development', 'd9e6d3e7-e2d9-40c2-b154-e35e53bce360'),
+-- ('JavaScript Tips', 'Functions, promises, and async/await make JavaScript much easier to work with once you understand them.', 'd9e6d3e7-e2d9-40c2-b154-e35e53bce360'),
+-- ( 'React Journey', 'Today I built my first React component and learned about props and state.' , '0665aa59-499e-417b-bff6-77b5368d2de0'),
+-- ('Docker Basics', 'I successfully ran my first Docker container and understood the concept of images.' , '0665aa59-499e-417b-bff6-77b5368d2de0'),
+-- ('Backend Progress', 'Working with Express and PostgreSQL has helped me understand how APIs communicate with databases.' , '0665aa59-499e-417b-bff6-77b5368d2de0');
+
+/* 
+Try to DELETE a user who has posts. What happens? This is called a constraint violation — 
+the DB is protecting you from orphaned posts.
+*/
+
+-- delete from users where id = 'd9e6d3e7-e2d9-40c2-b154-e35e53bce360';
+
+-- ERROR:  update or delete on table "users" violates foreign key constraint "posts_user_id_fkey" on table "posts"
+-- wont let me delete bcz its a foreign key and it is referenced in the posts table as well.
+
+/* 
+Add ON DELETE CASCADE to the foreign key: user_id INTEGER REFERENCES users(id) ON DELETE CASCADE. Now delete a user
+— all their posts are deleted automatically.
+
+*/
+-- on delete cascade deletes all references eg: if we delete some user from users table all their posts are also deleted.
+-- 
+-- # modify the existing user_id column in posts table.
+
+-- ALTER TABLE posts
+-- DROP CONSTRAINT posts_user_id_fkey,
+-- ADD CONSTRAINT posts_user_id_fkey
+-- FOREIGN KEY (user_id)
+-- REFERENCES users(id)
+-- ON DELETE CASCADE;
+
+-- delete from users where id = 'd9e6d3e7-e2d9-40c2-b154-e35e53bce360';
+-- All posts from the delted user is gone.
+
+-- select * from posts;
+/*
+ON DELETE CASCADE : if we wanna remove complete user data along with user.
+ON DELETE SET NULL : if we wanna persist the data for AI training or other legal purposes.
+ON DELETE RESTRICT : for saftey and not accidently delte user data or user.
+*/
+
+```
+
 ---
 
 ### PG-M1 — JOINs
@@ -256,6 +350,125 @@ Serial: if no input provided then assign numbers sequentially.
 **Stretch goals:**
 - Add a `HAVING` clause: find customers who have spent more than $100 total
 - Look up FULL OUTER JOIN and write one query using it — understand what it returns
+
+### solution
+```
+/*
+
+1. Create store_db. Build three tables:
+customers: id, name, email
+products: id, name, price
+orders: id, customer_id (FK), product_id (FK), quantity, ordered_at
+*/
+
+-- create table customers (
+-- 	id uuid default gen_random_uuid() primary key,
+-- 	name varchar(100),
+-- 	email varchar(100)
+-- );
+
+-- create table products (
+-- 	id uuid default gen_random_uuid() primary key,
+-- 	name varchar(100),
+-- 	price integer
+-- );
+
+-- create table orders (
+-- 	id uuid default gen_random_uuid() primary key,
+-- 	customer_id uuid references customers(id),
+-- 	product_id uuid references products(id),
+-- 	ordered_at timestamptz default now()
+
+-- );
+
+/*
+seed data get from online generators
+*/
+
+-- insert into customers (name, email) values ('Kip', 'khoxey0@printfriendly.com');
+-- insert into customers (name, email) values ('Ive', 'idumphrey1@drupal.org');
+-- insert into customers (name, email) values ('Bryn', 'bbamlet2@tinypic.com');
+-- insert into customers (name, email) values ('Caldwell', 'cbeames3@360.cn');
+-- insert into customers (name, email) values ('Pauline', 'pdobrowolny4@buzzfeed.com');
+-- insert into customers (name, email) values ('Geri', 'ggodber5@msn.com');
+-- insert into customers (name, email) values ('Lion', 'lmcgregor6@shareasale.com');
+-- insert into customers (name, email) values ('Alfie', 'atrobridge7@elegantthemes.com');
+-- insert into customers (name, email) values ('Fawne', 'fdrysdall8@instagram.com');
+-- insert into customers (name, email) values ('Omar', 'owiltshaw9@webs.com');
+
+-- Add products
+-- insert into products (name, price) values ('Solar Power Bank', 39.99);
+-- insert into products (name, price) values ('Portable Grill Cover', 24.99);
+-- insert into products (name, price) values ('Fruit Medley Juice', 3.49);
+-- insert into products (name, price) values ('Bamboo Cutting Board', 22);
+-- insert into products (name, price) values ('Oven-Baked Cheese Crisps', 3.99);
+
+
+-- select * from customers;
+
+
+-- insert into orders ( customer_id, product_id) 
+-- values ('f0fdc6aa-74f5-4b99-9848-101fa20b30cf', 'a5075b1f-4510-411b-8bec-d8877de7a4ff'),
+-- ('f0fdc6aa-74f5-4b99-9848-101fa20b30cf', 'ba8f32b2-a980-49c8-961c-aca3433c33a3'),
+-- ('f0fdc6aa-74f5-4b99-9848-101fa20b30cf', '0882c492-8fb9-4af9-ab76-8c1e5ad6ccc7'),
+-- ('3dc39e26-78c3-4506-b0d5-936de92622a2', 'a5075b1f-4510-411b-8bec-d8877de7a4ff'),
+-- ('3dc39e26-78c3-4506-b0d5-936de92622a2','ba8f32b2-a980-49c8-961c-aca3433c33a3' ),
+-- ('3dc39e26-78c3-4506-b0d5-936de92622a2', '0882c492-8fb9-4af9-ab76-8c1e5ad6ccc7'),
+-- ('ca044f20-98ad-477e-90d8-eb6f10c6e92a', 'ba8f32b2-a980-49c8-961c-aca3433c33a3'),
+-- ('ca044f20-98ad-477e-90d8-eb6f10c6e92a', '0882c492-8fb9-4af9-ab76-8c1e5ad6ccc7'),
+-- ('ca044f20-98ad-477e-90d8-eb6f10c6e92a', '16848c8e-7067-4a0e-9e57-c88181568fe9');
+
+/*
+Write and run each of these, understanding what each returns:
+INNER JOIN — customers who HAVE placed orders (excludes the customer with no orders)
+LEFT JOIN — ALL customers, with their orders where they exist (NULL for the customer with no orders)
+LEFT JOIN ... WHERE orders.id IS NULL — customers who have NEVER placed an order
+A JOIN across all three tables: show order details with customer name and product name
+*/
+
+
+-- select 
+-- customers.name, customers.email, orders.id from customers
+-- inner join orders
+-- on orders.customer_id = customers.id;
+
+-- the first table is the left table and the next table is the right table.
+-- left join shows all the rows of the left table.
+-- select * from customers inner join orders on orders.customer_id = customers.id;
+-- select * from customers left join orders on orders.customer_id = customers.id;
+
+/*
+LEFT JOIN ... WHERE orders.id IS NULL — customers who have NEVER placed an order
+*/
+-- select * from customers left join orders on orders.customer_id = customers.id where orders.customer_id is null;
+
+/*
+A JOIN across all three tables: show order details with customer name and product name
+*/
+
+-- select customers.name, products.name from orders left join customers on customers.id = orders.customer_id 
+-- inner join products on orders.product_id = products.id;
+
+/*
+Write a query that calculates total spend per customer: GROUP BY customer + SUM(price * quantity).
+column quantity not added during table creation so quantity skipped.
+*/
+
+-- select customers.id, customers.name, count(*) total_orders from orders;
+
+-- select customers.name, count(orders.id), sum(products.price) as total_orders from customers inner join 
+-- orders on orders.customer_id = customers.id inner join products on orders.product_id = products.id group by customers.id;
+
+-- select * from orders;
+
+/*
+Write a query that finds the most ordered product by total quantity. 
+I didn't add quantity column at time of table creation so the alternate way to find the most ordered product.
+*/
+
+-- select products.id, products.name, count(products.id) as total_products from orders inner join products on 
+-- orders.product_id = products.id group by products.id order by total_products desc;
+```
 
 ---
 

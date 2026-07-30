@@ -512,6 +512,49 @@ I didn't add quantity column at time of table creation so the alternate way to f
 - Create a partial index: `CREATE INDEX idx_purchases ON events(user_id) WHERE event_type = 'purchase';` — understand when this is better than a full index
 - Look up `VACUUM ANALYZE` and understand why Postgres needs it to use statistics for query planning
 
+### Solution
+```sql
+-- create table events (
+-- 	id serial,
+-- 	user_id integer,
+-- 	event_type varchar(50),
+-- 	properties text,
+-- 	created_at timestamptz default now()
+
+-- );
+
+-- INSERT INTO events (user_id, event_type, created_at)
+-- SELECT
+--   (random() * 1000)::INTEGER,
+--   (ARRAY['click','view','purchase','signup'])[floor(random()*4+1)],
+--   NOW() - (random() * INTERVAL '90 days')
+-- FROM generate_series(1, 100000);
+
+
+/*
+Run EXPLAIN ANALYZE SELECT * FROM events WHERE user_id = 42; — read the output. Look 
+for "Seq Scan" (full table scan). Note the execution time.
+*/
+
+-- explain analyze select * from events where user_id = 42;
+-- Execution time is 8.304 ms.
+
+
+/*
+Add an index: CREATE INDEX idx_events_user_id ON events(user_id);. Run the same EXPLAIN ANALYZE 
+again. Look for "Index Scan". Compare execution time.
+*/
+-- CREATE INDEX idx_events_user_id ON events(user_id);
+-- new execution time is 3.598 ms.
+
+/*
+Run EXPLAIN ANALYZE SELECT * FROM events WHERE event_type = 'purchase' ORDER BY created_at DESC;. Then add a 
+composite index on (event_type, created_at) and re-run.
+*/
+
+-- EXPLAIN ANALYZE SELECT * FROM events WHERE event_type = 'purchase' ORDER BY created_at DESC;
+```
+
 ---
 
 ### PG-M3 — Transactions & ACID

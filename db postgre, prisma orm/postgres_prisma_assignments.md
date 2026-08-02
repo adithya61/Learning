@@ -589,6 +589,30 @@ composite index on (event_type, created_at) and re-run.
 - Simulate a concurrent transfer conflict using two `psql` windows open at the same time — see what happens when both try to transfer from the same account simultaneously
 - Add a `transfer_log` table and insert a log entry inside the transaction — observe that the log row also rolls back if the transfer fails
 
+```sql
+-- create table accounts (
+-- 	id uuid default gen_random_uuid() primary key,
+-- 	owner_name varchar(105),
+-- 	balance numeric(10,2) check (balance >= 0)
+-- );
+
+-- insert into accounts (owner_name, balance)
+-- values ('atharv', 1000),
+-- ('vishal', 1000),
+-- ('rohan', 1000);
+
+-- begin;
+-- update accounts set balance = balance - 200 where id = '5aa8571d-e41d-4572-a159-d4fecb852528';
+
+-- select pg_sleep(10);
+
+-- update accounts set balance = balance + 200 where id = '8a09ec51-5367-4c2a-90ce-4f764fd6a810';
+-- rollback;
+
+-- select * from accounts;
+```
+
+
 ---
 
 ### PG-H1 — Aggregates, Subqueries & CTEs

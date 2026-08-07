@@ -658,6 +658,163 @@ composite index on (event_type, created_at) and re-run.
 - Add a window function: `ROW_NUMBER() OVER (PARTITION BY plan_id ORDER BY started_at)` — rank subscriptions per plan by start date
 - Write a query that shows each user's payment alongside their running total spend
 
+```
+-- create table users (
+-- 	id uuid default gen_random_uuid() primary key,
+-- 	email varchar(105),
+-- 	created_at timestamptz default now()
+-- );
+
+-- create table plans (
+-- 	id uuid default gen_random_uuid() primary key,
+-- 	name varchar(50),
+-- 	price_monthly int
+-- );
+
+-- create table subscriptions (
+-- 	id uuid default gen_random_uuid() primary key,
+-- 	user_id uuid references users(id),
+-- 	plan_id uuid references plans(id),
+-- 	started_at timestamptz,
+-- 	ended_at timestamptz 
+-- );
+
+-- create table payments (
+-- 	id uuid default gen_random_uuid() primary key,
+-- 	user_id uuid references users(id),
+-- 	amount int,
+-- 	paid_at timestamptz,
+-- 	status bool
+-- );
+
+-- Seeding data
+
+-- ==========================
+-- USERS (50)
+-- ==========================
+-- INSERT INTO users (email)
+-- SELECT
+--     'user' || gs || '@example.com'
+-- FROM generate_series(1, 50) gs;
+
+-- -- ==========================
+-- -- PLANS (3)
+-- -- ==========================
+-- INSERT INTO plans (name, price_monthly)
+-- VALUES
+-- ('Free', 0),
+-- ('Pro', 499),
+-- ('Enterprise', 1999);
+
+-- ==========================
+-- SUBSCRIPTIONS (40)
+-- ==========================
+-- INSERT INTO subscriptions (
+--     user_id,
+--     plan_id,
+--     started_at,
+--     ended_at
+-- )
+-- SELECT
+--     u.id,
+--     p.id,
+--     now() - (floor(random()*365) || ' days')::interval,
+--     CASE
+--         WHEN random() < 0.7
+--             THEN NULL
+--         ELSE
+--             now() - (floor(random()*100) || ' days')::interval
+--     END
+-- FROM (
+--     SELECT id
+--     FROM users
+--     ORDER BY random()
+--     LIMIT 40
+-- ) u
+-- CROSS JOIN LATERAL (
+--     SELECT id
+--     FROM plans
+--     ORDER BY random()
+--     LIMIT 1
+-- ) p;
+
+-- ==========================
+-- PAYMENTS (100)
+-- ==========================
+-- INSERT INTO payments (
+--     user_id,
+--     amount,
+--     paid_at,
+--     status
+-- )
+-- SELECT
+--     u.id,
+--     (ARRAY[0, 499, 1999])[floor(random() * 3 + 1)],
+--     now() - (floor(random() * 365) || ' days')::interval,
+--     random() < 0.9
+-- FROM generate_series(1, 100)
+-- CROSS JOIN LATERAL (
+--     SELECT id
+--     FROM users
+--     OFFSET floor(random() * (SELECT COUNT(*) FROM users))
+--     LIMIT 1
+-- ) u;
+
+/*
+* Write these queries:
+		1. Total revenue per month (GROUP BY month using DATE_TRUNC('month', paid_at))
+		2. Count of active subscriptions per plan (WHERE ended_at IS NULL)
+		3. Average payment amount per user, only for users with more than 2 payments (use HAVING)
+		4. The top 5 highest-paying users of all time (SUM of payments, ORDER BY, LIMIT)
+
+1. 
+select date_trunc('month', paid_at) as rev_monthly, sum(amount) as revenue 
+from payments group by rev_monthly order by rev_monthly;
+
+2.
+select count(*) from subscriptions where ended_at is null;
+
+3.
+select avg(amount), user_id from payments group by user_id having count(*) > 2;
+
+4.
+select user_id, sum(amount) as total from payments group by user_id order by total desc limit 5;
+
+*/
+
+/*
+
+* Write a subquery: find all users who have NEVER made a payment (NOT IN or NOT EXISTS pattern).
+
+select id from users where id not in (select user_id from payments);
+
+*/
+
+
+/*
+Write a CTE that calculates monthly revenue, then a second CTE that calculates month-over-month 
+growth percentage, chained together.
+
+
+Solution:
+
+with monthly_revenue as
+(select date_trunc('month', paid_at) as revenue_monthly, sum(amount) as monthly_sum
+from payments group by revenue_monthly
+order by revenue_monthly desc), 
+mom_growth as(
+select revenue_monthly, monthly_sum, lag(monthly_sum) over (order by revenue_monthly) as prev_monthly_rev
+from monthly_revenue)
+
+select revenue_monthly, monthly_sum, prev_monthly_rev, 
+round(
+((monthly_sum - prev_monthly_rev )/ cast(prev_monthly_rev as numeric)) * 100, 2) from mom_growth;
+
+*/
+
+
+```
+
 ---
 
 ### PG-H2 — Schema Design

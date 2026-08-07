@@ -812,6 +812,13 @@ round(
 
 */
 
+/*
+Write a comment: when is a CTE better than a subquery, and when does it make no difference?
+
+anwer: CTE is always better.
+
+*/
+
 
 ```
 

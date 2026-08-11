@@ -869,6 +869,152 @@ anwer: CTE is always better.
 - Add soft deletes: `deleted_at TIMESTAMPTZ` (nullable) on issues and comments. Update queries to filter `WHERE deleted_at IS NULL`
 - Design and implement a simple activity log table that records every change to an issue (what changed, old value, new value, who changed it, when)
 
+```sql
+/*
+schema design PG-H2.
+
+Tables list:
+users — id, name, email
+organizations — id, name
+organization_members — id, user_id (FK), org_id (FK)
+projects — id, name, org_id (FK)
+issues — id, name, project_id (FK), assigned_to (FK → users.id), status, priority
+labels — id, name
+issues_labels — id, issue_id (FK), label_id (FK)
+comments — id, comment, user_id (FK), issue_id (FK)
+
+
+
+*/
+
+-- create a enum;
+-- CREATE TYPE issue_status AS ENUM ('Todo', 'In Progress', 'Done', 'Cancelled');
+
+-- create table comments (
+-- 	id uuid primary key default gen_random_uuid(),
+	
+-- 	issue_id uuid references issues(id),
+-- 	user_id uuid references users(id),
+	
+-- 	created_at timestamptz default now(),
+-- 	updated_at timestamptz default now()
+-- );
+
+-- ============================================
+-- SEED DATA for Project Management Tool Schema
+-- ============================================
+-- Assumes the schema we designed together:
+-- users, organizations, organization_members, projects,
+-- issues, labels, issues_labels, comments
+--
+-- Uses fixed UUIDs so relationships are easy to trace
+-- while you're testing queries. Swap for gen_random_uuid()
+-- defaults in real usage.
+
+
+-- -- ---------- USERS ----------
+-- INSERT INTO users (id, name, email, created_at, updated_at) VALUES
+-- ('11111111-1111-1111-1111-111111111111', 'Alice Kumar',   'alice@example.com', now() - interval '90 days', now() - interval '90 days'),
+-- ('22222222-2222-2222-2222-222222222222', 'Ben Torres',    'ben@example.com',   now() - interval '85 days', now() - interval '85 days'),
+-- ('33333333-3333-3333-3333-333333333333', 'Chloe Wren',    'chloe@example.com', now() - interval '80 days', now() - interval '80 days'),
+-- ('44444444-4444-4444-4444-444444444444', 'Dev Patel',     'dev@example.com',   now() - interval '75 days', now() - interval '75 days'),
+-- ('55555555-5555-5555-5555-555555555555', 'Elena Cho',     'elena@example.com', now() - interval '70 days', now() - interval '70 days');
+
+-- -- ---------- ORGANIZATIONS ----------
+-- INSERT INTO organizations (id, name, created_at, updated_at) VALUES
+-- ('a1111111-1111-1111-1111-111111111111', 'Nimbus Labs',   now() - interval '100 days', now() - interval '100 days'),
+-- ('a2222222-2222-2222-2222-222222222222', 'Fractal Works', now() - interval '95 days',  now() - interval '95 days');
+
+-- -- ---------- ORGANIZATION_MEMBERS (many-to-many) ----------
+-- -- Alice: Nimbus + Fractal | Ben: Nimbus | Chloe: Nimbus + Fractal | Dev: Fractal | Elena: Nimbus
+-- INSERT INTO organization_members (id, user_id, org_id, created_at, updated_at) VALUES
+-- (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'a1111111-1111-1111-1111-111111111111', now(), now()),
+-- (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'a2222222-2222-2222-2222-222222222222', now(), now()),
+-- (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', 'a1111111-1111-1111-1111-111111111111', now(), now()),
+-- (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', 'a1111111-1111-1111-1111-111111111111', now(), now()),
+-- (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', 'a2222222-2222-2222-2222-222222222222', now(), now()),
+-- (gen_random_uuid(), '44444444-4444-4444-4444-444444444444', 'a2222222-2222-2222-2222-222222222222', now(), now()),
+-- (gen_random_uuid(), '55555555-5555-5555-5555-555555555555', 'a1111111-1111-1111-1111-111111111111', now(), now());
+
+-- -- ---------- PROJECTS ----------
+-- INSERT INTO projects (id, name, org_id, created_at, updated_at) VALUES
+-- ('b1111111-1111-1111-1111-111111111111', 'Website Revamp',  'a1111111-1111-1111-1111-111111111111', now() - interval '60 days', now() - interval '60 days'),
+-- ('b2222222-2222-2222-2222-222222222222', 'Mobile App',      'a1111111-1111-1111-1111-111111111111', now() - interval '55 days', now() - interval '55 days'),
+-- ('b3333333-3333-3333-3333-333333333333', 'Data Pipeline',   'a2222222-2222-2222-2222-222222222222', now() - interval '50 days', now() - interval '50 days');
+
+-- -- ---------- LABELS ----------
+-- INSERT INTO labels (id, name, created_at, updated_at) VALUES
+-- ('c1111111-1111-1111-1111-111111111111', 'bug',          now(), now()),
+-- ('c2222222-2222-2222-2222-222222222222', 'feature',      now(), now()),
+-- ('c3333333-3333-3333-3333-333333333333', 'tech-debt',    now(), now()),
+-- ('c4444444-4444-4444-4444-444444444444', 'blocked',      now(), now());
+
+-- -- ---------- ISSUES ----------
+-- -- Mix of statuses/priorities/assignees/projects for realistic query testing
+-- INSERT INTO issues (id, name, project_id, assigned_to, status, priority, created_at, updated_at) VALUES
+-- ('d0000001-0000-0000-0000-000000000001', 'Fix nav bar overflow on mobile',      'b1111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'Todo',        'High',   now() - interval '20 days', now() - interval '20 days'),
+-- ('d0000002-0000-0000-0000-000000000002', 'Redesign pricing page',              'b1111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', 'In Progress', 'Medium', now() - interval '18 days', now() - interval '3 days'),
+-- ('d0000003-0000-0000-0000-000000000003', 'Add dark mode toggle',               'b1111111-1111-1111-1111-111111111111', NULL,                                    'Todo',        'Low',    now() - interval '15 days', now() - interval '15 days'),
+-- ('d0000004-0000-0000-0000-000000000004', 'Crash on login screen',              'b2222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 'In Progress', 'Urgent', now() - interval '10 days', now() - interval '1 days'),
+-- ('d0000005-0000-0000-0000-000000000005', 'Push notifications not firing',      'b2222222-2222-2222-2222-222222222222', '33333333-3333-3333-3333-333333333333', 'Todo',        'High',   now() - interval '9 days',  now() - interval '9 days'),
+-- ('d0000006-0000-0000-0000-000000000006', 'Offline mode support',               'b2222222-2222-2222-2222-222222222222', NULL,                                    'Cancelled',   'Low',    now() - interval '8 days',  now() - interval '2 days'),
+-- ('d0000007-0000-0000-0000-000000000007', 'Refactor ETL retry logic',           'b3333333-3333-3333-3333-333333333333', '44444444-4444-4444-4444-444444444444', 'Done',        'Medium', now() - interval '30 days', now() - interval '5 days'),
+-- ('d0000008-0000-0000-0000-000000000008', 'Add schema validation on ingest',    'b3333333-3333-3333-3333-333333333333', '33333333-3333-3333-3333-333333333333', 'Todo',        'Urgent', now() - interval '7 days',  now() - interval '7 days'),
+-- ('d0000009-0000-0000-0000-000000000009', 'Investigate duplicate rows in warehouse', 'b3333333-3333-3333-3333-333333333333', '44444444-4444-4444-4444-444444444444', 'In Progress', 'High', now() - interval '6 days', now() - interval '1 days'),
+-- ('d0000010-0000-0000-0000-000000000010', 'Migrate CI to new runner',           'b1111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'Done',        'Low',    now() - interval '40 days', now() - interval '35 days');
+
+-- -- ---------- ISSUES_LABELS (many-to-many) ----------
+-- INSERT INTO issues_labels (id, issue_id, label_id, created_at, updated_at) VALUES
+-- (gen_random_uuid(), 'd0000001-0000-0000-0000-000000000001', 'c1111111-1111-1111-1111-111111111111', now(), now()), -- bug
+-- (gen_random_uuid(), 'd0000002-0000-0000-0000-000000000002', 'c2222222-2222-2222-2222-222222222222', now(), now()), -- feature
+-- (gen_random_uuid(), 'd0000003-0000-0000-0000-000000000003', 'c2222222-2222-2222-2222-222222222222', now(), now()), -- feature
+-- (gen_random_uuid(), 'd0000004-0000-0000-0000-000000000004', 'c1111111-1111-1111-1111-111111111111', now(), now()), -- bug
+-- (gen_random_uuid(), 'd0000004-0000-0000-0000-000000000004', 'c4444444-4444-4444-4444-444444444444', now(), now()), -- blocked
+-- (gen_random_uuid(), 'd0000005-0000-0000-0000-000000000005', 'c1111111-1111-1111-1111-111111111111', now(), now()), -- bug
+-- (gen_random_uuid(), 'd0000007-0000-0000-0000-000000000007', 'c3333333-3333-3333-3333-333333333333', now(), now()), -- tech-debt
+-- (gen_random_uuid(), 'd0000008-0000-0000-0000-000000000008', 'c1111111-1111-1111-1111-111111111111', now(), now()), -- bug
+-- (gen_random_uuid(), 'd0000009-0000-0000-0000-000000000009', 'c3333333-3333-3333-3333-333333333333', now(), now()), -- tech-debt
+-- (gen_random_uuid(), 'd0000010-0000-0000-0000-000000000010', 'c3333333-3333-3333-3333-333333333333', now(), now()); -- tech-debt
+
+-- -- ---------- COMMENTS ----------
+-- INSERT INTO comments (id, comment, user_id, issue_id, created_at, updated_at) VALUES
+-- (gen_random_uuid(), 'I can repro this on iOS Safari only.',              '22222222-2222-2222-2222-222222222222', 'd0000001-0000-0000-0000-000000000001', now() - interval '19 days', now() - interval '19 days'),
+-- (gen_random_uuid(), 'Started on the new layout, WIP in branch.',         '22222222-2222-2222-2222-222222222222', 'd0000002-0000-0000-0000-000000000002', now() - interval '10 days', now() - interval '10 days'),
+-- (gen_random_uuid(), 'Blocked on design review.',                        '11111111-1111-1111-1111-111111111111', 'd0000002-0000-0000-0000-000000000002', now() - interval '3 days',  now() - interval '3 days'),
+-- (gen_random_uuid(), 'This is a P0, users are getting logged out.',       '33333333-3333-3333-3333-333333333333', 'd0000004-0000-0000-0000-000000000004', now() - interval '9 days',  now() - interval '9 days'),
+-- (gen_random_uuid(), 'Looks like a race condition in the token refresh.', '11111111-1111-1111-1111-111111111111', 'd0000004-0000-0000-0000-000000000004', now() - interval '2 days',  now() - interval '2 days'),
+-- (gen_random_uuid(), 'Deprioritizing until v2.',                          '44444444-4444-4444-4444-444444444444', 'd0000006-0000-0000-0000-000000000006', now() - interval '2 days',  now() - interval '2 days'),
+-- (gen_random_uuid(), 'Merged, closing this out.',                        '44444444-4444-4444-4444-444444444444', 'd0000007-0000-0000-0000-000000000007', now() - interval '5 days',  now() - interval '5 days'),
+-- (gen_random_uuid(), 'Adding tests before merging.',                     '33333333-3333-3333-3333-333333333333', 'd0000008-0000-0000-0000-000000000008', now() - interval '6 days',  now() - interval '6 days'),
+-- (gen_random_uuid(), 'Found via the weekly reconciliation job.',          '44444444-4444-4444-4444-444444444444', 'd0000009-0000-0000-0000-000000000009', now() - interval '1 days',  now() - interval '1 days');
+
+-- select * from issues;
+
+-- 1. All issues assigned to a specific user across all organizations.
+
+-- select * from issues where assigned_to = '11111111-1111-1111-1111-111111111111';
+
+-- 2. All open issues (not Done/Cancelled) in a project, sorted by priority.
+
+-- select * from issues where status not in('Done', 'Cancelled') order by priority desc;
+
+-- 3. All issues with a specific label
+
+-- select * from labels;
+
+-- select issue_id from issues_labels where label_id = 'c2222222-2222-2222-2222-222222222222';
+
+-- select * from issues where id in(select issue_id from issues_labels where label_id = 'c2222222-2222-2222-2222-222222222222');
+
+-- 4. Comment count per issue for a given project
+
+-- select id from issues where project_id = 'b3333333-3333-3333-3333-333333333333';
+
+-- select issues.id, count(comments.id) as comment_count from issues 
+-- left join comments on comments.issue_id = issues.id where  issues.project_id  = 'b3333333-3333-3333-3333-333333333333'
+-- group by issues.id;
+```
+
 ---
 
 ## PART 2 — Prisma

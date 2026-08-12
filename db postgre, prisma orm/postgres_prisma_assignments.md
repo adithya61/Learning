@@ -1066,6 +1066,77 @@ Now you switch to Node.js and TypeScript. Every concept in Part 1 maps directly 
 - Add a `genre` field to the model and run a second migration. Observe the migration file Prisma generates in `prisma/migrations/`
 - Read the generated SQL in the migration file and verify it matches what you'd write by hand
 
+```
+schema.prisma:
+
+model Book {
+     id            Int      @id @default(autoincrement())
+     title         String
+     author        String
+     genre         String?
+     publishedYear Int?
+     available     Boolean  @default(true)
+     createdAt     DateTime @default(now())
+   }
+
+
+seed.ts:
+import { PrismaClient } from "../generated/prisma/client";
+import "dotenv/config";
+
+import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
+
+console.log(process.env.DATABASE_URL, "here is the db url");
+
+const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+
+const prisma = new PrismaClient({ adapter });
+
+async function main() {
+  // Create a new record
+  const newBooks = await prisma.book.createMany({
+    data: [
+      {
+        title: "the art of mindfullness",
+        author: "dalai lama",
+      },
+      {
+        title: "sapiens",
+        author: "harrari",
+      },
+      {
+        title: "The alchemist",
+        author: "paulo",
+      },
+      {
+        title: "meditations",
+        author: "marcus",
+      },
+      {
+        title: "Man's search for meaning",
+        author: "frankl",
+      },
+    ],
+  });
+  console.log("Created Book:", newBooks);
+
+  // Fetch all records
+  const allBooks = await prisma.book.findMany();
+  console.log("All Users:", allBooks);
+}
+
+main()
+  .catch((e) => console.error(e))
+  .finally(async () => await prisma.$disconnect());
+
+
+* to add genre just go to schema.prisma and add the column in mode object and run mpx prisma migrate.
+
+
+```
+
 ---
 
 ### PR-E2 — Full CRUD with Prisma Client

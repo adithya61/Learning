@@ -1184,6 +1184,148 @@ main()
 - Add `select` to a `findMany` — only return `title` and `author`, not all fields. Compare with SQL's `SELECT title, author FROM books`
 - Experiment with `prisma.book.findMany({ where: { publishedYear: { gte: 2000, lte: 2020 } } })` — Prisma's filter operators
 
+```
+create.ts
+import { PrismaClient } from "../generated/prisma/client";
+import "dotenv/config";
+import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
+
+const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+
+const prisma = new PrismaClient({ adapter });
+
+async function main() {
+  const newBook = await prisma.book.create({
+    data: {
+      title: "the 5 am club",
+      author: "robin sharma",
+    },
+  });
+//   insert into table "Book" (columns) values (...), (...);
+
+  const newBooks = await prisma.book.createMany({
+    data: [
+      {
+        title: "the monk who sold his ferrari",
+        author: "robin sharma",
+      },
+      {
+        title: "how to influence friends and win people",
+        author: "dale carnagie",
+      },
+      {
+        title: "what every body is saying",
+        author: "former fbi agent",
+      },
+      {
+        title: "who moved my cheese",
+        author: "spencer",
+      },
+      {
+        title: "the hard thing about hard things",
+        author: "ben",
+      },
+    ],
+  });
+  console.log("Created Book:", newBooks);
+
+  // Fetch all records
+  const allBooks = await prisma.book.findMany();
+  console.log("All Users:", allBooks);
+}
+
+main()
+  .catch((e) => console.error(e))
+  .finally(async () => await prisma.$disconnect());
+
+
+```
+read.ts
+```
+async function main() {
+  // exact match by unique field
+  // select * from "Book" where id = 2;
+  const unique = await prisma.book.findUnique({ where: { id: 2 } });
+  // first match
+  // select * from "Book" where title = "meditations" limit 1;
+  const first = await prisma.book.findFirst({
+    where: { title: "meditations" },
+  });
+
+  // find many matches
+  // select * from "Book" where available = true;
+  const many = await prisma.book.findMany({ where: { available: true } });
+
+  //   select * from "Book" order by "publishedYear" = desc;
+  const orderd = await prisma.book.findMany({
+    orderBy: { publishedYear: `desc` },
+  });
+
+  // page 1
+  // SELECT * FROM "Book" LIMIT 3 OFFSET 0;
+  const paginate = await prisma.book.findMany({ take: 3, skip: 0 });
+
+  // page 2
+//   SELECT * FROM "Book" LIMIT 3 OFFSET 3;
+  const nextPage = await prisma.book.findMany({ take: 3, skip: 3 });
+
+  //   select count(*) from "Book" where available = true;
+  const count = await prisma.book.count({ where: { available: true } });
+
+  console.log(unique, first, many, orderd, paginate, nextPage, count);
+}
+
+```
+update.ts
+```
+async function main() {
+  // update
+  // update "Book" set available = true where id = 1;
+  await ps.update({ where: { id: 1 }, data: { available: true } });
+
+  // update "Book" set available = false where available = true;
+  await ps.updateMany({
+    where: { available: true },
+    data: { available: false },
+  });
+}
+
+```
+delete.ts
+```
+async function main() {
+  // delete
+
+  // delete from "Book" where id = 7;
+  await ps.delete({ where: { id: 7 } });
+
+  // delete from "Book" where id in (8, 9, 10, 11)
+  await ps.deleteMany({ where: { id: { in: [8, 9, 10, 11] } } });
+}
+
+```
+upsert.ts
+```
+async function main() {
+  await ps.upsert({
+    where: {
+      id: 30,
+    },
+    update: {
+      title: "the courage to be disliked",
+    },
+    create: {
+      title: "the courage to be disliked",
+      author: "jhon doe",
+      createdAt: new Date(),
+    },
+  });
+}
+
+```
+
 ---
 
 ### PR-E3 — Relations in Prisma Schema

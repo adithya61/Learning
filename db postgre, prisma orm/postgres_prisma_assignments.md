@@ -1325,6 +1325,18 @@ async function main() {
 }
 
 ```
+upsert.ts
+```
+
+const users = await prisma.user.findMany({
+  select: {
+    id: true,
+    email: true,
+  },
+});
+
+
+```
 
 ---
 

@@ -1388,7 +1388,7 @@ const users = await prisma.user.findMany({
    ```
 4. Add tags to an existing post using `connect`:
    ```ts
-   prisma.post.update({
+   prisma.post.update({ 
      where: { id: 1 },
      data: { tags: { connect: [{ id: 1 }, { id: 2 }] } }
    })
@@ -1414,7 +1414,59 @@ const users = await prisma.user.findMany({
 - Switch from an implicit join table to an explicit one (add a `PostTag` model with extra fields like `addedAt`) — understand why you'd do this
 - Add `onDelete: Cascade` to the Post relation on User: `@relation(fields: [authorId], references: [id], onDelete: Cascade)`
 
+```
+  //   await prisma.user.create({
+  //     data: {
+  //       email: "dev@test.com",
+  //       name: "Dev",
+  //       posts: { create: [{ title: "First Post", body: "..." }] },
+  //     },
+  //   });
+
+  //   Link tag 1 and tag 2 to post 1.
+
+  //   await prisma.post.update({
+  //     where: { id: 1 },
+  //     data: { tags: { connect: [{ id: 1 }, { id: 2 }] } },
+  //   });
+
+  //   const un = await prisma.user.findUnique({
+  //     where: { id: 1 },
+  //     include: { posts: true },
+  //   });
+
+
+  // select * from post where id = 1 left join on 
+  const un = await prisma.post.findUnique({
+    where: { id: 1 },
+    include: { author: true, tags: true },
+  });
+
+7. 
+SELECT
+  "Post"."id",
+  "Post"."title",
+  "Post"."body",
+  "Post"."published",
+  "Post"."authorId",
+  "Post"."createdAt",
+  "User"."id",
+  "User"."email",
+  "User"."name",
+  "User"."createdAt"
+  from
+  "Post"
+  left join "User"
+  on "Post"."authorId" = "User"."id"  where "Post"."id" = 1;
+  
+  -- tags
+  
+  SELECT "Tag"."id", "Tag"."name" FROM "Tag" JOIN "_PostToTag" ON "Tag"."id" = "_PostToTag"."B" WHERE "_PostToTag"."A" = 1;
+
+```
 ---
+
+
 
 ### PR-M1 — Filtering, Sorting & Pagination
 

@@ -2,7 +2,7 @@
 
 **Goal:** Build genuine understanding of relational databases and Prisma ORM before touching auth.  
 **Structure:** Part 1 is pure PostgreSQL (raw SQL, no ORM). Part 2 is pure Prisma. Part 3 combines both.  
-**Why this order:** You need to know what Prisma is doing *for you* before you use it. If you've only ever used Prisma, you won't understand what a JOIN is, why indexes matter, or what a transaction actually does. Part 1 builds that foundation.
+**Why this order:** You need to know what Prisma is doing _for you_ before you use it. If you've only ever used Prisma, you won't understand what a JOIN is, why indexes matter, or what a transaction actually does. Part 1 builds that foundation.
 
 ---
 
@@ -32,12 +32,12 @@ No Node.js yet. No Prisma yet. Just you, `psql`, and raw SQL. The goal is to und
 **Tasks:**
 
 1. Create a database: `createdb library_db`. Connect to it: `psql library_db`.
-2. Create a `books` table with these columns: 
- `id` (SERIAL PRIMARY KEY),
- `title` (VARCHAR(255) NOT NULL),
-  `author` (VARCHAR(255) NOT NULL), 
-  `published_year` (INTEGER), 
-  `available` (BOOLEAN DEFAULT true).
+2. Create a `books` table with these columns:
+   `id` (SERIAL PRIMARY KEY),
+   `title` (VARCHAR(255) NOT NULL),
+   `author` (VARCHAR(255) NOT NULL),
+   `published_year` (INTEGER),
+   `available` (BOOLEAN DEFAULT true).
 3. Insert at least 5 books using `INSERT INTO`.
 4. Practice these queries one by one, understanding each output:
    - `SELECT * FROM books;`
@@ -53,16 +53,17 @@ No Node.js yet. No Prisma yet. Just you, `psql`, and raw SQL. The goal is to und
 
 **Review Criteria:**
 
-| Criteria | Pass | Fail |
-|----------|------|------|
-| Primary key type | SERIAL (auto-increment) | No primary key defined |
-| NOT NULL constraint | On title and author | Missing — nulls allowed |
-| UPDATE targets specific row | Uses `WHERE id = ?` | Updates all rows accidentally |
-| DELETE targets specific row | Uses `WHERE id = ?` | Deletes all rows accidentally |
-| \d books output | Shows correct types and constraints | Column types are wrong |
-| Can describe what SERIAL does | Yes | "I just copied it" |
+| Criteria                      | Pass                                | Fail                          |
+| ----------------------------- | ----------------------------------- | ----------------------------- |
+| Primary key type              | SERIAL (auto-increment)             | No primary key defined        |
+| NOT NULL constraint           | On title and author                 | Missing — nulls allowed       |
+| UPDATE targets specific row   | Uses `WHERE id = ?`                 | Updates all rows accidentally |
+| DELETE targets specific row   | Uses `WHERE id = ?`                 | Deletes all rows accidentally |
+| \d books output               | Shows correct types and constraints | Column types are wrong        |
+| Can describe what SERIAL does | Yes                                 | "I just copied it"            |
 
 **Stretch goals:**
+
 - Add a `genre` column to the existing table using `ALTER TABLE books ADD COLUMN genre VARCHAR(100);`
 - Select only books where `published_year` is between 1990 and 2010 using `BETWEEN`
 
@@ -78,7 +79,7 @@ No Node.js yet. No Prisma yet. Just you, `psql`, and raw SQL. The goal is to und
 -- );
 
 -- insert into books (published_year, available, title, author)
--- values 
+-- values
 -- 	(1999, true, 'the beginners mind', 'miyamoto mushashi'),
 -- 	(2001, true, 'deep work', 'sigma range'),
 -- 	(1985, true, 'the five rings', 'albert'),
@@ -103,17 +104,17 @@ Serial: if no input provided then assign numbers sequentially.
 
 **Tasks:**
 
-1. Create a new database `constraints_db`. Create a `users` table with: 
-`id` (UUID, use 
-`gen_random_uuid()` as default), 
-`email` (TEXT, UNIQUE, NOT NULL), 
-`username` (VARCHAR(50), NOT NULL), 
-`age` (INTEGER, CHECK age >= 13), 
-`bio` (TEXT, nullable), 
-`is_active` (BOOLEAN, NOT NULL, DEFAULT true), 
-`created_at` (TIMESTAMPTZ, DEFAULT NOW()).
-2. Enable the UUID extension first: 
-`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`
+1. Create a new database `constraints_db`. Create a `users` table with:
+   `id` (UUID, use
+   `gen_random_uuid()` as default),
+   `email` (TEXT, UNIQUE, NOT NULL),
+   `username` (VARCHAR(50), NOT NULL),
+   `age` (INTEGER, CHECK age >= 13),
+   `bio` (TEXT, nullable),
+   `is_active` (BOOLEAN, NOT NULL, DEFAULT true),
+   `created_at` (TIMESTAMPTZ, DEFAULT NOW()).
+2. Enable the UUID extension first:
+   `CREATE EXTENSION IF NOT EXISTS "pgcrypto";`
 3. Try to insert a user with a duplicate email. Observe the error message Postgres gives you. Write down what the error says.
 4. Try to insert a user with `age = 10`. Observe the CHECK constraint error.
 5. Try to insert a user with `email = NULL`. Observe the NOT NULL error.
@@ -124,20 +125,22 @@ Serial: if no input provided then assign numbers sequentially.
 
 **Review Criteria:**
 
-| Criteria | Pass | Fail |
-|----------|------|------|
-| UUID default | `gen_random_uuid()` set as DEFAULT | UUID entered manually each insert |
-| Duplicate email | Rejected by DB constraint | Allowed through |
-| Age < 13 | Rejected by CHECK | Allowed through |
-| NULL email | Rejected by NOT NULL | Allowed through |
-| TIMESTAMPTZ used | Yes (timezone-aware) | TIMESTAMP (no timezone — wrong for production) |
-| IS NULL vs = NULL | Knows `= NULL` doesn't work in SQL | Uses `= NULL` and gets confused |
+| Criteria          | Pass                               | Fail                                           |
+| ----------------- | ---------------------------------- | ---------------------------------------------- |
+| UUID default      | `gen_random_uuid()` set as DEFAULT | UUID entered manually each insert              |
+| Duplicate email   | Rejected by DB constraint          | Allowed through                                |
+| Age < 13          | Rejected by CHECK                  | Allowed through                                |
+| NULL email        | Rejected by NOT NULL               | Allowed through                                |
+| TIMESTAMPTZ used  | Yes (timezone-aware)               | TIMESTAMP (no timezone — wrong for production) |
+| IS NULL vs = NULL | Knows `= NULL` doesn't work in SQL | Uses `= NULL` and gets confused                |
 
 **Stretch goals:**
+
 - Add a constraint that `username` must be at least 3 characters: `CHECK (char_length(username) >= 3)`
 - Add a named constraint: `CONSTRAINT valid_age CHECK (age >= 13 AND age <= 120)` — understand why naming constraints helps error messages
 
 #### solution
+
 ```
 -- create table users (
 -- 	id default gen_random_uuid() primary key,
@@ -147,17 +150,17 @@ Serial: if no input provided then assign numbers sequentially.
 -- 	bio text null,
 -- 	is_active boolean not null default true,
 -- 	created_at timestamptz default now()
-	
+
 -- );
 
 -- select * from users;
 
--- insert into users (email, username, age) 
+-- insert into users (email, username, age)
 -- values ('watson@emma.co', 'watson john', 16);
 
 -- delete from users where id = 'd98bd643-8aad-4f17-8d36-334cb6b6b851';
 
--- insert into users (email, username, age, is_active) 
+-- insert into users (email, username, age, is_active)
 -- values ('alex.jones@email.com', 'alex xu', 18, false),
 -- ('sam_design@email.com', 'sam', 22, true),
 -- ('chloe.hikes@email.com', 'chloe', 44, true);
@@ -174,7 +177,7 @@ Serial: if no input provided then assign numbers sequentially.
 -- Difference b/w text and varchar(50)
 -- 1. text has no limit on characters and varcahr(n) limits to n characters.
 -- 2. text is stored off table and contains only a pointer to the actual memory location of
--- the stored text requires extra disk look up to fetch text, varchar(n) stored inline faster 
+-- the stored text requires extra disk look up to fetch text, varchar(n) stored inline faster
 -- fetch times and easier indexing.
 
 -- IS : used only as IS NULL || IS NOT NULL || IS TRUE
@@ -204,36 +207,38 @@ Serial: if no input provided then assign numbers sequentially.
 
 **Review Criteria:**
 
-| Criteria | Pass | Fail |
-|----------|------|------|
-| Foreign key defined | Yes on `user_id` | No FK — just an integer column |
-| Insert orphaned post | Rejected by DB | Allowed |
-| Delete user with posts (RESTRICT) | Rejected by DB | Allowed, posts remain orphaned |
-| ON DELETE CASCADE understood | Posts deleted with user | No understanding of CASCADE |
-| Difference between CASCADE/SET NULL/RESTRICT | Can explain each | Can't distinguish |
+| Criteria                                     | Pass                    | Fail                           |
+| -------------------------------------------- | ----------------------- | ------------------------------ |
+| Foreign key defined                          | Yes on `user_id`        | No FK — just an integer column |
+| Insert orphaned post                         | Rejected by DB          | Allowed                        |
+| Delete user with posts (RESTRICT)            | Rejected by DB          | Allowed, posts remain orphaned |
+| ON DELETE CASCADE understood                 | Posts deleted with user | No understanding of CASCADE    |
+| Difference between CASCADE/SET NULL/RESTRICT | Can explain each        | Can't distinguish              |
 
 **Stretch goals:**
+
 - Add a `comments` table that references both `users` and `posts`. Practice the three-table relationship
 - Add `ON UPDATE CASCADE` and observe what happens when you update a user's `id`
 
 ### Solution
+
 ```
-/* 
+/*
 postgresql E-3.
 
-Create a new database relations_db. Create a users table (id, email, name). 
+Create a new database relations_db. Create a users table (id, email, name).
 Create a posts table: id, title, body, user_id (INTEGER REFERENCES users(id)), created_at.
 */
 
 -- create table users (
 -- 	id uuid default gen_random_uuid() primary key,
--- 	email varchar(255), 
+-- 	email varchar(255),
 -- 	name varchar(50)
 -- );
 
 -- create table posts (
 -- 	id uuid default gen_random_uuid() primary key,
--- 	title varchar(255), 
+-- 	title varchar(255),
 -- 	body text,
 -- 	user_id uuid REFERENCES users(id),
 -- 	created_at timestamptz default now()
@@ -249,8 +254,8 @@ Create a posts table: id, title, body, user_id (INTEGER REFERENCES users(id)), c
 -- 	('RahulVerma@gmail.com', 'Rahul Verma'),
 -- 	('SnehaIyer', 'Sneha Iyer');
 
-/* 
-Try to insert a post with a user_id that doesn't exist in users. 
+/*
+Try to insert a post with a user_id that doesn't exist in users.
 Observe the foreign key violation error.
 */
 
@@ -272,8 +277,8 @@ Insert 2 users and 3 posts each — total 6 posts.
 -- ('Docker Basics', 'I successfully ran my first Docker container and understood the concept of images.' , '0665aa59-499e-417b-bff6-77b5368d2de0'),
 -- ('Backend Progress', 'Working with Express and PostgreSQL has helped me understand how APIs communicate with databases.' , '0665aa59-499e-417b-bff6-77b5368d2de0');
 
-/* 
-Try to DELETE a user who has posts. What happens? This is called a constraint violation — 
+/*
+Try to DELETE a user who has posts. What happens? This is called a constraint violation —
 the DB is protecting you from orphaned posts.
 */
 
@@ -282,13 +287,13 @@ the DB is protecting you from orphaned posts.
 -- ERROR:  update or delete on table "users" violates foreign key constraint "posts_user_id_fkey" on table "posts"
 -- wont let me delete bcz its a foreign key and it is referenced in the posts table as well.
 
-/* 
+/*
 Add ON DELETE CASCADE to the foreign key: user_id INTEGER REFERENCES users(id) ON DELETE CASCADE. Now delete a user
 — all their posts are deleted automatically.
 
 */
 -- on delete cascade deletes all references eg: if we delete some user from users table all their posts are also deleted.
--- 
+--
 -- # modify the existing user_id column in posts table.
 
 -- ALTER TABLE posts
@@ -330,7 +335,7 @@ ON DELETE RESTRICT : for saftey and not accidently delte user data or user.
    - `LEFT JOIN` — ALL customers, with their orders where they exist (NULL for the customer with no orders)
    - `LEFT JOIN ... WHERE orders.id IS NULL` — customers who have NEVER placed an order
    - A JOIN across all three tables: show order details with customer name and product name
-4. Write a query that calculates total spend per customer: GROUP BY customer + SUM(price * quantity).
+4. Write a query that calculates total spend per customer: GROUP BY customer + SUM(price \* quantity).
 5. Write a query that finds the most ordered product by total quantity.
 6. Write a comment in your notes: what is the difference between INNER JOIN and LEFT JOIN, and when does it matter?
 
@@ -338,20 +343,22 @@ ON DELETE RESTRICT : for saftey and not accidently delte user data or user.
 
 **Review Criteria:**
 
-| Criteria | Pass | Fail |
-|----------|------|------|
-| INNER JOIN result | Excludes customer with no orders | Includes them |
-| LEFT JOIN result | Includes all customers | Excludes some |
-| IS NULL pattern | Works to find no-order customers | Doesn't know this pattern |
-| Three-table JOIN | Works correctly | Produces duplicate rows (cartesian product) |
-| Total spend per customer | Correct SUM with GROUP BY | Wrong totals or missing GROUP BY |
-| Can explain when LEFT vs INNER | Yes | "I just tried both" |
+| Criteria                       | Pass                             | Fail                                        |
+| ------------------------------ | -------------------------------- | ------------------------------------------- |
+| INNER JOIN result              | Excludes customer with no orders | Includes them                               |
+| LEFT JOIN result               | Includes all customers           | Excludes some                               |
+| IS NULL pattern                | Works to find no-order customers | Doesn't know this pattern                   |
+| Three-table JOIN               | Works correctly                  | Produces duplicate rows (cartesian product) |
+| Total spend per customer       | Correct SUM with GROUP BY        | Wrong totals or missing GROUP BY            |
+| Can explain when LEFT vs INNER | Yes                              | "I just tried both"                         |
 
 **Stretch goals:**
+
 - Add a `HAVING` clause: find customers who have spent more than $100 total
 - Look up FULL OUTER JOIN and write one query using it — understand what it returns
 
 ### solution
+
 ```
 /*
 
@@ -407,7 +414,7 @@ seed data get from online generators
 -- select * from customers;
 
 
--- insert into orders ( customer_id, product_id) 
+-- insert into orders ( customer_id, product_id)
 -- values ('f0fdc6aa-74f5-4b99-9848-101fa20b30cf', 'a5075b1f-4510-411b-8bec-d8877de7a4ff'),
 -- ('f0fdc6aa-74f5-4b99-9848-101fa20b30cf', 'ba8f32b2-a980-49c8-961c-aca3433c33a3'),
 -- ('f0fdc6aa-74f5-4b99-9848-101fa20b30cf', '0882c492-8fb9-4af9-ab76-8c1e5ad6ccc7'),
@@ -427,7 +434,7 @@ A JOIN across all three tables: show order details with customer name and produc
 */
 
 
--- select 
+-- select
 -- customers.name, customers.email, orders.id from customers
 -- inner join orders
 -- on orders.customer_id = customers.id;
@@ -446,7 +453,7 @@ LEFT JOIN ... WHERE orders.id IS NULL — customers who have NEVER placed an ord
 A JOIN across all three tables: show order details with customer name and product name
 */
 
--- select customers.name, products.name from orders left join customers on customers.id = orders.customer_id 
+-- select customers.name, products.name from orders left join customers on customers.id = orders.customer_id
 -- inner join products on orders.product_id = products.id;
 
 /*
@@ -456,17 +463,17 @@ column quantity not added during table creation so quantity skipped.
 
 -- select customers.id, customers.name, count(*) total_orders from orders;
 
--- select customers.name, count(orders.id), sum(products.price) as total_orders from customers inner join 
+-- select customers.name, count(orders.id), sum(products.price) as total_orders from customers inner join
 -- orders on orders.customer_id = customers.id inner join products on orders.product_id = products.id group by customers.id;
 
 -- select * from orders;
 
 /*
-Write a query that finds the most ordered product by total quantity. 
+Write a query that finds the most ordered product by total quantity.
 I didn't add quantity column at time of table creation so the alternate way to find the most ordered product.
 */
 
--- select products.id, products.name, count(products.id) as total_products from orders inner join products on 
+-- select products.id, products.name, count(products.id) as total_products from orders inner join products on
 -- orders.product_id = products.id group by products.id order by total_products desc;
 ```
 
@@ -499,20 +506,22 @@ I didn't add quantity column at time of table creation so the alternate way to f
 
 **Review Criteria:**
 
-| Criteria | Pass | Fail |
-|----------|------|------|
-| EXPLAIN ANALYZE read | Can find execution time and scan type | Output is confusing/ignored |
-| Performance difference measured | Before/after timing noted | Just ran query, didn't compare |
-| Seq Scan understood | Full table scan, slow on large tables | Not understood |
-| Index Scan understood | Uses the index, fast | Not understood |
-| Write overhead understood | Index slows INSERT/UPDATE | "More indexes = always better" |
-| Composite index order | Understands column order matters | Random order |
+| Criteria                        | Pass                                  | Fail                           |
+| ------------------------------- | ------------------------------------- | ------------------------------ |
+| EXPLAIN ANALYZE read            | Can find execution time and scan type | Output is confusing/ignored    |
+| Performance difference measured | Before/after timing noted             | Just ran query, didn't compare |
+| Seq Scan understood             | Full table scan, slow on large tables | Not understood                 |
+| Index Scan understood           | Uses the index, fast                  | Not understood                 |
+| Write overhead understood       | Index slows INSERT/UPDATE             | "More indexes = always better" |
+| Composite index order           | Understands column order matters      | Random order                   |
 
 **Stretch goals:**
+
 - Create a partial index: `CREATE INDEX idx_purchases ON events(user_id) WHERE event_type = 'purchase';` — understand when this is better than a full index
 - Look up `VACUUM ANALYZE` and understand why Postgres needs it to use statistics for query planning
 
 ### Solution
+
 ```sql
 -- create table events (
 -- 	id serial,
@@ -532,7 +541,7 @@ I didn't add quantity column at time of table creation so the alternate way to f
 
 
 /*
-Run EXPLAIN ANALYZE SELECT * FROM events WHERE user_id = 42; — read the output. Look 
+Run EXPLAIN ANALYZE SELECT * FROM events WHERE user_id = 42; — read the output. Look
 for "Seq Scan" (full table scan). Note the execution time.
 */
 
@@ -541,14 +550,14 @@ for "Seq Scan" (full table scan). Note the execution time.
 
 
 /*
-Add an index: CREATE INDEX idx_events_user_id ON events(user_id);. Run the same EXPLAIN ANALYZE 
+Add an index: CREATE INDEX idx_events_user_id ON events(user_id);. Run the same EXPLAIN ANALYZE
 again. Look for "Index Scan". Compare execution time.
 */
 -- CREATE INDEX idx_events_user_id ON events(user_id);
 -- new execution time is 3.598 ms.
 
 /*
-Run EXPLAIN ANALYZE SELECT * FROM events WHERE event_type = 'purchase' ORDER BY created_at DESC;. Then add a 
+Run EXPLAIN ANALYZE SELECT * FROM events WHERE event_type = 'purchase' ORDER BY created_at DESC;. Then add a
 composite index on (event_type, created_at) and re-run.
 */
 
@@ -576,16 +585,17 @@ composite index on (event_type, created_at) and re-run.
 
 **Review Criteria:**
 
-| Criteria | Pass | Fail |
-|----------|------|------|
-| Transfer without transaction | Shows the money loss problem | Skipped this step |
-| Transfer with transaction | Both succeed or both fail | One side can succeed alone |
-| CHECK constraint + transaction | Auto-rollback fires | Constraint ignored |
-| ROLLBACK demonstrated | Changes undone | Doesn't know how to rollback |
-| Dirty read explained | Correct explanation | Confused with other concepts |
-| ACID explained | Can define each letter | Memorized acronym, no substance |
+| Criteria                       | Pass                         | Fail                            |
+| ------------------------------ | ---------------------------- | ------------------------------- |
+| Transfer without transaction   | Shows the money loss problem | Skipped this step               |
+| Transfer with transaction      | Both succeed or both fail    | One side can succeed alone      |
+| CHECK constraint + transaction | Auto-rollback fires          | Constraint ignored              |
+| ROLLBACK demonstrated          | Changes undone               | Doesn't know how to rollback    |
+| Dirty read explained           | Correct explanation          | Confused with other concepts    |
+| ACID explained                 | Can define each letter       | Memorized acronym, no substance |
 
 **Stretch goals:**
+
 - Simulate a concurrent transfer conflict using two `psql` windows open at the same time — see what happens when both try to transfer from the same account simultaneously
 - Add a `transfer_log` table and insert a log entry inside the transaction — observe that the log row also rolls back if the transfer fails
 
@@ -611,7 +621,6 @@ composite index on (event_type, created_at) and re-run.
 
 -- select * from accounts;
 ```
-
 
 ---
 
@@ -645,16 +654,17 @@ composite index on (event_type, created_at) and re-run.
 
 **Review Criteria:**
 
-| Criteria | Pass | Fail |
-|----------|------|------|
-| DATE_TRUNC for monthly grouping | Correct | Using raw timestamp in GROUP BY |
-| HAVING vs WHERE | Knows the difference | Using WHERE on aggregate results |
-| NOT IN subquery | Works correctly | Confused when NULLs are in the sublist |
-| CTE syntax | Clean and readable | Subquery soup |
-| Chained CTEs | Works | Doesn't know CTEs can reference each other |
-| CTE vs subquery explanation | Accurate | "CTE is always better" |
+| Criteria                        | Pass                 | Fail                                       |
+| ------------------------------- | -------------------- | ------------------------------------------ |
+| DATE_TRUNC for monthly grouping | Correct              | Using raw timestamp in GROUP BY            |
+| HAVING vs WHERE                 | Knows the difference | Using WHERE on aggregate results           |
+| NOT IN subquery                 | Works correctly      | Confused when NULLs are in the sublist     |
+| CTE syntax                      | Clean and readable   | Subquery soup                              |
+| Chained CTEs                    | Works                | Doesn't know CTEs can reference each other |
+| CTE vs subquery explanation     | Accurate             | "CTE is always better"                     |
 
 **Stretch goals:**
+
 - Add a window function: `ROW_NUMBER() OVER (PARTITION BY plan_id ORDER BY started_at)` — rank subscriptions per plan by start date
 - Write a query that shows each user's payment alongside their running total spend
 
@@ -676,7 +686,7 @@ composite index on (event_type, created_at) and re-run.
 -- 	user_id uuid references users(id),
 -- 	plan_id uuid references plans(id),
 -- 	started_at timestamptz,
--- 	ended_at timestamptz 
+-- 	ended_at timestamptz
 -- );
 
 -- create table payments (
@@ -767,8 +777,8 @@ composite index on (event_type, created_at) and re-run.
 		3. Average payment amount per user, only for users with more than 2 payments (use HAVING)
 		4. The top 5 highest-paying users of all time (SUM of payments, ORDER BY, LIMIT)
 
-1. 
-select date_trunc('month', paid_at) as rev_monthly, sum(amount) as revenue 
+1.
+select date_trunc('month', paid_at) as rev_monthly, sum(amount) as revenue
 from payments group by rev_monthly order by rev_monthly;
 
 2.
@@ -792,7 +802,7 @@ select id from users where id not in (select user_id from payments);
 
 
 /*
-Write a CTE that calculates monthly revenue, then a second CTE that calculates month-over-month 
+Write a CTE that calculates monthly revenue, then a second CTE that calculates month-over-month
 growth percentage, chained together.
 
 
@@ -801,12 +811,12 @@ Solution:
 with monthly_revenue as
 (select date_trunc('month', paid_at) as revenue_monthly, sum(amount) as monthly_sum
 from payments group by revenue_monthly
-order by revenue_monthly desc), 
+order by revenue_monthly desc),
 mom_growth as(
 select revenue_monthly, monthly_sum, lag(monthly_sum) over (order by revenue_monthly) as prev_monthly_rev
 from monthly_revenue)
 
-select revenue_monthly, monthly_sum, prev_monthly_rev, 
+select revenue_monthly, monthly_sum, prev_monthly_rev,
 round(
 ((monthly_sum - prev_monthly_rev )/ cast(prev_monthly_rev as numeric)) * 100, 2) from mom_growth;
 
@@ -855,17 +865,18 @@ anwer: CTE is always better.
 
 **Review Criteria:**
 
-| Criteria | Pass | Fail |
-|----------|------|------|
-| ERD drawn before SQL | Yes | Jumped straight to SQL |
-| Many-to-many (issues/labels) | Join table implemented | Two arrays in one column |
-| ENUMs used for status/priority | Yes | Plain strings with no constraint |
-| updated_at on every table | Yes | Missing on some tables |
-| Indexes on foreign keys | Yes | No indexes, all Seq Scans |
-| Normalization comment | Thoughtful | Missing or generic |
-| Queries work correctly | All return correct results | Wrong results or errors |
+| Criteria                       | Pass                       | Fail                             |
+| ------------------------------ | -------------------------- | -------------------------------- |
+| ERD drawn before SQL           | Yes                        | Jumped straight to SQL           |
+| Many-to-many (issues/labels)   | Join table implemented     | Two arrays in one column         |
+| ENUMs used for status/priority | Yes                        | Plain strings with no constraint |
+| updated_at on every table      | Yes                        | Missing on some tables           |
+| Indexes on foreign keys        | Yes                        | No indexes, all Seq Scans        |
+| Normalization comment          | Thoughtful                 | Missing or generic               |
+| Queries work correctly         | All return correct results | Wrong results or errors          |
 
 **Stretch goals:**
+
 - Add soft deletes: `deleted_at TIMESTAMPTZ` (nullable) on issues and comments. Update queries to filter `WHERE deleted_at IS NULL`
 - Design and implement a simple activity log table that records every change to an issue (what changed, old value, new value, who changed it, when)
 
@@ -892,10 +903,10 @@ comments — id, comment, user_id (FK), issue_id (FK)
 
 -- create table comments (
 -- 	id uuid primary key default gen_random_uuid(),
-	
+
 -- 	issue_id uuid references issues(id),
 -- 	user_id uuid references users(id),
-	
+
 -- 	created_at timestamptz default now(),
 -- 	updated_at timestamptz default now()
 -- );
@@ -1010,7 +1021,7 @@ comments — id, comment, user_id (FK), issue_id (FK)
 
 -- select id from issues where project_id = 'b3333333-3333-3333-3333-333333333333';
 
--- select issues.id, count(comments.id) as comment_count from issues 
+-- select issues.id, count(comments.id) as comment_count from issues
 -- left join comments on comments.issue_id = issues.id where  issues.project_id  = 'b3333333-3333-3333-3333-333333333333'
 -- group by issues.id;
 ```
@@ -1053,16 +1064,17 @@ Now you switch to Node.js and TypeScript. Every concept in Part 1 maps directly 
 
 **Review Criteria:**
 
-| Criteria | Pass | Fail |
-|----------|------|------|
-| Migration ran successfully | Yes, table exists in DB | Migration not run |
-| Schema matches SQL equivalent | Can map each keyword | No understanding of what Prisma generates |
-| Seed script works | 5 books in DB after running | Script errors |
-| Prisma Studio opened | Browsed the data | Never opened it |
-| SQL mapping comments | Written and accurate | Missing |
-| DATABASE_URL in .env | Yes | Hardcoded in code |
+| Criteria                      | Pass                        | Fail                                      |
+| ----------------------------- | --------------------------- | ----------------------------------------- |
+| Migration ran successfully    | Yes, table exists in DB     | Migration not run                         |
+| Schema matches SQL equivalent | Can map each keyword        | No understanding of what Prisma generates |
+| Seed script works             | 5 books in DB after running | Script errors                             |
+| Prisma Studio opened          | Browsed the data            | Never opened it                           |
+| SQL mapping comments          | Written and accurate        | Missing                                   |
+| DATABASE_URL in .env          | Yes                         | Hardcoded in code                         |
 
 **Stretch goals:**
+
 - Add a `genre` field to the model and run a second migration. Observe the migration file Prisma generates in `prisma/migrations/`
 - Read the generated SQL in the migration file and verify it matches what you'd write by hand
 
@@ -1171,16 +1183,17 @@ main()
 
 **Review Criteria:**
 
-| Criteria | Pass | Fail |
-|----------|------|------|
-| findUnique vs findFirst difference | Can explain | Used interchangeably |
-| Pagination with skip/take | Correct formula | Off-by-one errors |
-| updateMany vs update | Knows when to use each | Always uses update |
-| SQL comments | Present and correct | Missing or wrong SQL |
-| upsert works | Correctly creates or updates | Errors on duplicate |
-| createMany used | Yes | Looping create() for bulk inserts |
+| Criteria                           | Pass                         | Fail                              |
+| ---------------------------------- | ---------------------------- | --------------------------------- |
+| findUnique vs findFirst difference | Can explain                  | Used interchangeably              |
+| Pagination with skip/take          | Correct formula              | Off-by-one errors                 |
+| updateMany vs update               | Knows when to use each       | Always uses update                |
+| SQL comments                       | Present and correct          | Missing or wrong SQL              |
+| upsert works                       | Correctly creates or updates | Errors on duplicate               |
+| createMany used                    | Yes                          | Looping create() for bulk inserts |
 
 **Stretch goals:**
+
 - Add `select` to a `findMany` — only return `title` and `author`, not all fields. Compare with SQL's `SELECT title, author FROM books`
 - Experiment with `prisma.book.findMany({ where: { publishedYear: { gte: 2000, lte: 2020 } } })` — Prisma's filter operators
 
@@ -1242,7 +1255,9 @@ main()
 
 
 ```
+
 read.ts
+
 ```
 async function main() {
   // exact match by unique field
@@ -1278,7 +1293,9 @@ async function main() {
 }
 
 ```
+
 update.ts
+
 ```
 async function main() {
   // update
@@ -1293,7 +1310,9 @@ async function main() {
 }
 
 ```
+
 delete.ts
+
 ```
 async function main() {
   // delete
@@ -1306,7 +1325,9 @@ async function main() {
 }
 
 ```
+
 upsert.ts
+
 ```
 async function main() {
   await ps.upsert({
@@ -1325,7 +1346,9 @@ async function main() {
 }
 
 ```
+
 upsert.ts
+
 ```
 
 const users = await prisma.user.findMany({
@@ -1349,6 +1372,7 @@ const users = await prisma.user.findMany({
 **Tasks:**
 
 1. Define these models:
+
    ```prisma
    model User {
      id        Int      @id @default(autoincrement())
@@ -1375,23 +1399,24 @@ const users = await prisma.user.findMany({
      posts Post[]
    }
    ```
+
 2. Run migration. Open TablePlus and find the implicit join table Prisma created for `Post <-> Tag`. What is it named? What columns does it have?
 3. Create a user with posts in one operation using nested writes:
    ```ts
    prisma.user.create({
      data: {
-       email: 'dev@test.com',
-       name: 'Dev',
-       posts: { create: [{ title: 'First Post', body: '...' }] }
-     }
-   })
+       email: "dev@test.com",
+       name: "Dev",
+       posts: { create: [{ title: "First Post", body: "..." }] },
+     },
+   });
    ```
 4. Add tags to an existing post using `connect`:
    ```ts
-   prisma.post.update({ 
+   prisma.post.update({
      where: { id: 1 },
-     data: { tags: { connect: [{ id: 1 }, { id: 2 }] } }
-   })
+     data: { tags: { connect: [{ id: 1 }, { id: 2 }] } },
+   });
    ```
 5. Query a user and include their posts: `prisma.user.findUnique({ where: { id: 1 }, include: { posts: true } })`.
 6. Query a post and include its author AND its tags: nested `include`.
@@ -1401,16 +1426,17 @@ const users = await prisma.user.findMany({
 
 **Review Criteria:**
 
-| Criteria | Pass | Fail |
-|----------|------|------|
-| Relation defined correctly | Both sides declared | One-sided relation (will error) |
-| Implicit join table found | Yes, can see it in TablePlus | Didn't look |
-| Nested create works | User + posts created together | Two separate create calls |
-| connect works for many-to-many | Tags connected to post | Tags recreated every time |
-| Nested include works | Author and tags in one query | N+1 queries (separate fetches in a loop) |
-| SQL logged | Found the generated SQL | "I trust Prisma" |
+| Criteria                       | Pass                          | Fail                                     |
+| ------------------------------ | ----------------------------- | ---------------------------------------- |
+| Relation defined correctly     | Both sides declared           | One-sided relation (will error)          |
+| Implicit join table found      | Yes, can see it in TablePlus  | Didn't look                              |
+| Nested create works            | User + posts created together | Two separate create calls                |
+| connect works for many-to-many | Tags connected to post        | Tags recreated every time                |
+| Nested include works           | Author and tags in one query  | N+1 queries (separate fetches in a loop) |
+| SQL logged                     | Found the generated SQL       | "I trust Prisma"                         |
 
 **Stretch goals:**
+
 - Switch from an implicit join table to an explicit one (add a `PostTag` model with extra fields like `addedAt`) — understand why you'd do this
 - Add `onDelete: Cascade` to the Post relation on User: `@relation(fields: [authorId], references: [id], onDelete: Cascade)`
 
@@ -1436,13 +1462,13 @@ const users = await prisma.user.findMany({
   //   });
 
 
-  // select * from post where id = 1 left join on 
+  // select * from post where id = 1 left join on
   const un = await prisma.post.findUnique({
     where: { id: 1 },
     include: { author: true, tags: true },
   });
 
-7. 
+7.
 SELECT
   "Post"."id",
   "Post"."title",
@@ -1458,15 +1484,14 @@ SELECT
   "Post"
   left join "User"
   on "Post"."authorId" = "User"."id"  where "Post"."id" = 1;
-  
+
   -- tags
-  
+
   SELECT "Tag"."id", "Tag"."name" FROM "Tag" JOIN "_PostToTag" ON "Tag"."id" = "_PostToTag"."B" WHERE "_PostToTag"."A" = 1;
 
 ```
+
 ---
-
-
 
 ### PR-M1 — Filtering, Sorting & Pagination
 
@@ -1493,16 +1518,17 @@ SELECT
 
 **Review Criteria:**
 
-| Criteria | Pass | Fail |
-|----------|------|------|
-| String search (contains) | Case-insensitive with `mode: 'insensitive'` | Case-sensitive only |
-| Compound filter | AND/OR used correctly | Can only filter one field at a time |
-| Offset pagination formula | `skip: (page - 1) * pageSize` | Off-by-one errors |
-| Cursor pagination | Works and explained | Not implemented |
-| Dynamic where object | Built conditionally | Static where with hardcoded values |
-| Pagination problem explained | Correct (shifting rows on insert) | Missing |
+| Criteria                     | Pass                                        | Fail                                |
+| ---------------------------- | ------------------------------------------- | ----------------------------------- |
+| String search (contains)     | Case-insensitive with `mode: 'insensitive'` | Case-sensitive only                 |
+| Compound filter              | AND/OR used correctly                       | Can only filter one field at a time |
+| Offset pagination formula    | `skip: (page - 1) * pageSize`               | Off-by-one errors                   |
+| Cursor pagination            | Works and explained                         | Not implemented                     |
+| Dynamic where object         | Built conditionally                         | Static where with hardcoded values  |
+| Pagination problem explained | Correct (shifting rows on insert)           | Missing                             |
 
 **Stretch goals:**
+
 - Add `orderBy` that supports multiple fields: `orderBy: [{ category: 'asc' }, { price: 'desc' }]`
 - Add full-text search using Prisma's `search` mode (requires enabling the preview feature in schema.prisma)
 
@@ -1548,7 +1574,7 @@ const searchProducts = async (filters: ProductFilters) => {
   });
 
   console.log(result);
-  
+
 };
 
 async function main() {
@@ -1659,18 +1685,146 @@ main()
 
 **Review Criteria:**
 
-| Criteria | Pass | Fail |
-|----------|------|------|
-| Tag replacement with `set` | Correct | Manually disconnect/connect each tag |
-| Select used for partial fields | Yes | Always fetching all fields |
-| N+1 identified | Yes — can show the query count | "It works, who cares" |
-| N+1 fixed | Single query with include | Still looping |
-| _count used | Yes | Fetching all posts just to count them |
-| Nested select inside include | Works | Doesn't know this is possible |
+| Criteria                       | Pass                           | Fail                                  |
+| ------------------------------ | ------------------------------ | ------------------------------------- |
+| Tag replacement with `set`     | Correct                        | Manually disconnect/connect each tag  |
+| Select used for partial fields | Yes                            | Always fetching all fields            |
+| N+1 identified                 | Yes — can show the query count | "It works, who cares"                 |
+| N+1 fixed                      | Single query with include      | Still looping                         |
+| \_count used                   | Yes                            | Fetching all posts just to count them |
+| Nested select inside include   | Works                          | Doesn't know this is possible         |
 
 **Stretch goals:**
+
 - Enable Prisma query logging in development: `new PrismaClient({ log: ['query'] })` — log every SQL query to the console and study what Prisma generates
 - Use `prisma.post.findMany({ where: { author: { email: { contains: 'gmail' } } } })` — filter across relations
+
+### Solution
+
+```
+// why selct and include cannot be used simultaneously.
+
+In Prisma, select and include can never be used simultaneously at the same level of an argument object.
+
+This restriction comes down to a fundamental conflict in their definitions:
+
+include means: "Return all default scalar columns of this model, plus load these specific relations."
+
+select means: "Return only the exact columns and relations listed here; exclude everything else."
+
+Because Prisma cannot simultaneously return "all fields" and "only these specific fields" on the same entity, mixing them at the same level triggers a compiler and runtime error:
+
+Cannot provide both 'include' and 'select' to the same query.
+
+// prisma solves the n+1 prolem because of the optimized query it sends it reduces the no. of queries sent and improves performance.
+// enable prisma logging while instantiating prismaClient.
+
+* CreateMany doesn't support {connect}
+* when having a foreign key relation with a table two columns are defined for eg:
+```
+
+model User {
+id Int @id @default(autoincrement())
+email String @unique
+name String?
+createdAt DateTime @default(now())
+
+// One user can have many posts (relation field)
+posts Post[]
+}
+
+model Post {
+id Int @id @default(autoincrement())
+title String
+content String?
+published Boolean @default(false)
+createdAt DateTime @default(now())
+
+// Foreign key scalar field
+authorId Int
+// Relation back to the User model
+author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+```
+
+1 user n posts: 1 to n relationship.
+
+aurhorId:
+the foreign key contains userId of the user
+it is a real column in the table
+
+author:
+a virtual field exists only in prisma and not in the database.
+the actual row form ther User table with the respective authorId
+so author.name, author.email is possible
+
+
+Solution:
+// User table has foreign key, tag table
+  //   const result = await prisma.post.create({
+  //     data: {
+  //       title: "this is casablanca",
+  //       body: "casablanca is a remarkable invention",
+  //       User: {
+  //         connect: { id: 1 },
+  //       },
+  //       Tag: {
+  //         create: [{name: 'luxury'}, {name: "sample"}],
+  //       },
+  //     },
+  //   });
+  // set to updated connect items
+  //   const result = await prisma.post.update({
+  //     where: { id: 3 },
+  //     data: {
+  //       Tag: {
+  //         set: { id: 1 },
+  //       },
+  //     },
+  //   });
+  //   for on delete cascade added later to schema run
+  // npx prisma migrate.
+  //   await prisma.user.delete({ where: { id: 2 } });
+  // select vs include
+  // const r = await prisma.post.findMany({
+  //     select: {
+  //         id: true,
+  //         title: true,
+  //         createdAt: true,
+  //         User: {
+  //             select: {
+  //                 name: true
+  //             }
+  //         }
+  //     },
+  // })
+  //   const posts = await prisma.post.findMany({
+  //     include: {
+  //         User: true
+  //     }
+  //   });
+  //   console.log(posts);
+  //   for (let post of posts) {
+  //     console.log(
+  //       await prisma.user.findFirst({
+  //         where: { id: post.authorId },
+  //       }),
+  //     );
+  //   }
+  //   count no. of posts per user.
+  //   const res = await prisma.user.findMany({
+  //     include: { _count: { select: { Post: true } } },
+  //   });
+  // find total users in the table.
+  //  const res = await prisma.user.count();
+  //   filter across relations.
+  //   const res = await prisma.post.findMany({
+  //     where: { User: { email: { contains: "gmail" } } },
+  //   });
+
+
+```
 
 ---
 
@@ -1694,16 +1848,17 @@ main()
 
 **Review Criteria:**
 
-| Criteria | Pass | Fail |
-|----------|------|------|
-| Generated migration SQL read | Yes, understood it | Never opened the file |
-| Non-nullable addition | Default value added | Migration fails on existing rows |
-| Column rename | Two-step process | One-step rename (data loss) |
-| --create-only understood | Can explain and use | Never used it |
-| migrate dev vs deploy | Can explain the difference | Used interchangeably |
-| Migration files committed to git | Yes | In .gitignore |
+| Criteria                         | Pass                       | Fail                             |
+| -------------------------------- | -------------------------- | -------------------------------- |
+| Generated migration SQL read     | Yes, understood it         | Never opened the file            |
+| Non-nullable addition            | Default value added        | Migration fails on existing rows |
+| Column rename                    | Two-step process           | One-step rename (data loss)      |
+| --create-only understood         | Can explain and use        | Never used it                    |
+| migrate dev vs deploy            | Can explain the difference | Used interchangeably             |
+| Migration files committed to git | Yes                        | In .gitignore                    |
 
 **Stretch goals:**
+
 - Intentionally break a migration (remove a non-nullable column that has data) — observe what `prisma migrate dev` does and how to recover using `prisma migrate resolve`
 - Write a seed script that runs after every migration in dev: add `"prisma": { "seed": "ts-node prisma/seed.ts" }` to package.json
 
@@ -1721,19 +1876,31 @@ main()
 2. **Sequential transaction** — `prisma.$transaction([])`:
    ```ts
    await prisma.$transaction([
-     prisma.wallet.update({ where: { id: fromId }, data: { balance: { decrement: amount } } }),
-     prisma.wallet.update({ where: { id: toId }, data: { balance: { increment: amount } } }),
-   ])
+     prisma.wallet.update({
+       where: { id: fromId },
+       data: { balance: { decrement: amount } },
+     }),
+     prisma.wallet.update({
+       where: { id: toId },
+       data: { balance: { increment: amount } },
+     }),
+   ]);
    ```
    Test that if the second operation fails, the first is rolled back.
 3. **Interactive transaction** — `prisma.$transaction(async (tx) => { ... })`:
    ```ts
    await prisma.$transaction(async (tx) => {
-     const from = await tx.wallet.findUnique({ where: { id: fromId } })
-     if (from.balance < amount) throw new Error('Insufficient funds')
-     await tx.wallet.update({ where: { id: fromId }, data: { balance: { decrement: amount } } })
-     await tx.wallet.update({ where: { id: toId }, data: { balance: { increment: amount } } })
-   })
+     const from = await tx.wallet.findUnique({ where: { id: fromId } });
+     if (from.balance < amount) throw new Error("Insufficient funds");
+     await tx.wallet.update({
+       where: { id: fromId },
+       data: { balance: { decrement: amount } },
+     });
+     await tx.wallet.update({
+       where: { id: toId },
+       data: { balance: { increment: amount } },
+     });
+   });
    ```
    Understand when you need the interactive form vs sequential.
 4. Implement a `transferFunds(fromId, toId, amount)` function that uses an interactive transaction and handles: insufficient funds, wallet not found, self-transfer attempt.
@@ -1744,16 +1911,17 @@ main()
 
 **Review Criteria:**
 
-| Criteria | Pass | Fail |
-|----------|------|------|
-| Sequential transaction | Works for simple cases | Using two separate updates |
-| Interactive transaction | Used when conditional logic needed | Always using sequential |
-| Rollback on error | Verified — balance unchanged | Never tested failure case |
-| Insufficient funds check | Inside transaction | Outside transaction (race condition) |
-| TransactionLog rolls back | Yes, atomic with transfer | Log persists even when transfer fails |
-| Sequential vs interactive explained | Accurate | Can't distinguish |
+| Criteria                            | Pass                               | Fail                                  |
+| ----------------------------------- | ---------------------------------- | ------------------------------------- |
+| Sequential transaction              | Works for simple cases             | Using two separate updates            |
+| Interactive transaction             | Used when conditional logic needed | Always using sequential               |
+| Rollback on error                   | Verified — balance unchanged       | Never tested failure case             |
+| Insufficient funds check            | Inside transaction                 | Outside transaction (race condition)  |
+| TransactionLog rolls back           | Yes, atomic with transfer          | Log persists even when transfer fails |
+| Sequential vs interactive explained | Accurate                           | Can't distinguish                     |
 
 **Stretch goals:**
+
 - Add `maxWait` and `timeout` options to your interactive transaction — understand what they do: `prisma.$transaction(async (tx) => { ... }, { maxWait: 5000, timeout: 10000 })`
 - Test concurrent transfers using `Promise.all` — observe if race conditions occur and how Prisma handles them
 
@@ -1777,24 +1945,24 @@ main()
        JOIN comment_tree ct ON c."parentId" = ct.id
      )
      SELECT * FROM comment_tree;
-   `
+   `;
    ```
 2. **Tagged template literals for safety**: understand why `prisma.$queryRaw` with a tagged template literal is safe from SQL injection but `prisma.$queryRawUnsafe` is not. Write one example showing the difference.
 3. **Soft deletes with Prisma middleware**:
    ```ts
    prisma.$use(async (params, next) => {
-     if (params.model === 'Post') {
-       if (params.action === 'delete') {
-         params.action = 'update'
-         params.args.data = { deletedAt: new Date() }
+     if (params.model === "Post") {
+       if (params.action === "delete") {
+         params.action = "update";
+         params.args.data = { deletedAt: new Date() };
        }
-       if (params.action === 'findMany' && !params.args?.where?.deletedAt) {
-         params.args = params.args ?? {}
-         params.args.where = { ...params.args.where, deletedAt: null }
+       if (params.action === "findMany" && !params.args?.where?.deletedAt) {
+         params.args = params.args ?? {};
+         params.args.where = { ...params.args.where, deletedAt: null };
        }
      }
-     return next(params)
-   })
+     return next(params);
+   });
    ```
    Add `deletedAt DateTime?` to Post. Verify: `delete` now sets `deletedAt`, `findMany` automatically filters out soft-deleted rows.
 4. **Auto-updated timestamps**: write middleware that sets `updatedAt = new Date()` on every `update` and `updateMany` action, so you don't have to include it manually every time.
@@ -1804,16 +1972,17 @@ main()
 
 **Review Criteria:**
 
-| Criteria | Pass | Fail |
-|----------|------|------|
-| Raw query uses tagged template | Yes — injection safe | String concatenation used |
-| `$queryRawUnsafe` danger understood | Can explain | "Both are the same" |
-| Soft delete middleware | delete → update with deletedAt | Still doing hard deletes |
-| findMany filters soft deletes | Automatically via middleware | Manual `WHERE deletedAt IS NULL` every time |
-| Auto-timestamp middleware | Works on all update actions | Only on explicit `updatedAt` include |
-| Two good raw SQL use cases | Named correctly | Generic answer |
+| Criteria                            | Pass                           | Fail                                        |
+| ----------------------------------- | ------------------------------ | ------------------------------------------- |
+| Raw query uses tagged template      | Yes — injection safe           | String concatenation used                   |
+| `$queryRawUnsafe` danger understood | Can explain                    | "Both are the same"                         |
+| Soft delete middleware              | delete → update with deletedAt | Still doing hard deletes                    |
+| findMany filters soft deletes       | Automatically via middleware   | Manual `WHERE deletedAt IS NULL` every time |
+| Auto-timestamp middleware           | Works on all update actions    | Only on explicit `updatedAt` include        |
+| Two good raw SQL use cases          | Named correctly                | Generic answer                              |
 
 **Stretch goals:**
+
 - Add a query logging middleware that logs every Prisma action, the model, and execution time to the console
 - Write a `$executeRaw` for a bulk update that Prisma's `updateMany` can't do (e.g. `UPDATE posts SET views = views + 1 WHERE id = ANY($1::int[])`)
 
@@ -1862,17 +2031,18 @@ main()
 
 **Review Criteria:**
 
-| Criteria | Pass | Fail |
-|----------|------|------|
-| Schema designed before coding | ADR or notes exist | Jumped to code |
-| All relations correct | One-to-many and many-to-many work | Relations broken or missing |
-| _count used for board stats | Yes | Fetching all lists to count them |
-| Card move is transactional | Position updates atomic | Two separate updates (race condition) |
-| $queryRaw for stats | Used for the stats endpoint | Prisma API used and it's awkward |
-| Soft delete middleware active | Cards aren't hard deleted | Hard deletes only |
-| DB.md written | Present and thoughtful | Missing |
+| Criteria                      | Pass                              | Fail                                  |
+| ----------------------------- | --------------------------------- | ------------------------------------- |
+| Schema designed before coding | ADR or notes exist                | Jumped to code                        |
+| All relations correct         | One-to-many and many-to-many work | Relations broken or missing           |
+| \_count used for board stats  | Yes                               | Fetching all lists to count them      |
+| Card move is transactional    | Position updates atomic           | Two separate updates (race condition) |
+| $queryRaw for stats           | Used for the stats endpoint       | Prisma API used and it's awkward      |
+| Soft delete middleware active | Cards aren't hard deleted         | Hard deletes only                     |
+| DB.md written                 | Present and thoughtful            | Missing                               |
 
 **Stretch goals:**
+
 - Add full-text search on card title and description using PostgreSQL's `tsvector` and `tsquery` — expose it via `GET /cards?search=keyword`
 - Write a database backup script that exports the entire database to a JSON file and can re-import it — useful for understanding the data structure at a meta level
 

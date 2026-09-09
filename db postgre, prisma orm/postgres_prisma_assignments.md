@@ -1862,6 +1862,43 @@ Solution:
 - Intentionally break a migration (remove a non-nullable column that has data) — observe what `prisma migrate dev` does and how to recover using `prisma migrate resolve`
 - Write a seed script that runs after every migration in dev: add `"prisma": { "seed": "ts-node prisma/seed.ts" }` to package.json
 
+### Soluiton
+```
+ npx prisma migrate dev --create-only --name add-index 
+
+--create-only creates a sql file in migrations folder which can be used to write raw sql.
+after writting sql run to apply migration and run the sql command.
+
+npx prisma migrate deploy
+
+* migrate dev vs migrate deploy:
+migrate dev
+Purpose: Used during local development when you change your schema.prisma file.
+Actions: Compares your schema to the database, prompts you for a migration name, creates a new SQL migration file in prisma/migrations, and applies it.
+
+migrate deploy
+Purpose: Used in staging, preview, and production environments via CI/CD pipelines.
+Actions: Looks at the existing prisma/migrations folder and applies any pending, unapplied migrations to the target database.
+
+model Package {
+  id          Int      @id @default(autoincrement())
+  name        String
+  createdAt   DateTime @default(now())
+  description String?
+  category    Category[]
+  priceInr    Float
+}
+
+model Category {
+    id Int @id @default(autoincrement())
+    name String
+    packageId Int
+    package Package @relation(fields: [packageId], references: [id])
+}
+
+```
+
+
 ---
 
 ### PR-H1 — Prisma Transactions

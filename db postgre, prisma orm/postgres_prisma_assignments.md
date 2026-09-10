@@ -1863,8 +1863,9 @@ Solution:
 - Write a seed script that runs after every migration in dev: add `"prisma": { "seed": "ts-node prisma/seed.ts" }` to package.json
 
 ### Soluiton
+
 ```
- npx prisma migrate dev --create-only --name add-index 
+ npx prisma migrate dev --create-only --name add-index
 
 --create-only creates a sql file in migrations folder which can be used to write raw sql.
 after writting sql run to apply migration and run the sql command.
@@ -1897,7 +1898,6 @@ model Category {
 }
 
 ```
-
 
 ---
 
@@ -1961,6 +1961,150 @@ model Category {
 
 - Add `maxWait` and `timeout` options to your interactive transaction — understand what they do: `prisma.$transaction(async (tx) => { ... }, { maxWait: 5000, timeout: 10000 })`
 - Test concurrent transfers using `Promise.all` — observe if race conditions occur and how Prisma handles them
+
+#### Soluiton
+
+```
+maxTime and Timeout : In Prisma Client, maxWait and timeout are two configuration options used to control the lifecycle of interactive transactions
+
+
+concurrent transactions in prisma are handle by scoreboarding technique: concurrent transactions are run by Promise.all()
+
+// schema.prisma
+model User {
+    id Int @id @default(autoincrement())
+    name String
+    wallet Wallet?
+}
+
+model Wallet {
+    id Int @id @default(autoincrement())
+    userId Int @unique
+    user User @relation(fields: [userId], references: [id])
+    balance Float
+    currency String
+
+}
+
+model TransactionLog {
+    id Int @id @default(autoincrement())
+    fromId Int
+    toId Int
+    amount Int
+    createdAt DateTime @default(now())
+}
+
+//seed.ts
+async function main() {
+    // pr - h1 Transactions.
+    // -------------------------------------------------------------
+  // Data for 10 Users and their 1-to-1 Wallets
+  // -------------------------------------------------------------
+  const usersData = [
+    { name: 'Alice', balance: 100.0, currency: 'USD' },
+    { name: 'Bob', balance: 250.5, currency: 'EUR' },
+    { name: 'Charlie', balance: 50.0, currency: 'USD' },
+    { name: 'Diana', balance: 1200.0, currency: 'GBP' },
+    { name: 'Evan', balance: 340.75, currency: 'USD' },
+    { name: 'Fiona', balance: 80.0, currency: 'CAD' },
+    { name: 'George', balance: 500.0, currency: 'AUD' },
+    { name: 'Hannah', balance: 65.25, currency: 'EUR' },
+    { name: 'Ian', balance: 910.0, currency: 'USD' },
+    { name: 'Julia', balance: 430.0, currency: 'JPY' },
+  ]
+
+  // -------------------------------------------------------------
+  // Insert 10 Users with Wallets inside a single Transaction
+  // -------------------------------------------------------------
+  const createdUsers = await prisma.$transaction(
+    usersData.map((item) =>
+      prisma.user.create({
+        data: {
+          name: item.name,
+          wallet: {
+            create: {
+              balance: item.balance,
+              currency: item.currency,
+            },
+          },
+        },
+        include: {
+          wallet: true,
+        },
+      })
+    )
+  )
+
+  console.log(`Successfully created ${createdUsers.length} users with wallets:`)
+  console.dir(createdUsers, { depth: null })
+
+
+}
+
+
+// initial.ts
+async function main() {
+  // pr - h1 Transactions.
+
+  const transferFunds = async (
+    fromId: number,
+    toId: number,
+    amount: number,
+  ) => {
+    if (fromId == toId) throw new Error("self transfer not allowed");
+    if (amount <= 0)
+      throw new Error("trasaction must be greater than zero(0).");
+
+    // Interactive Transaction
+    return await prisma.$transaction(async (tx) => {
+      const fromUser = await tx.wallet.findFirstOrThrow({
+        where: { id: fromId },
+      });
+      const toUser = await tx.wallet.findFirstOrThrow({
+        where: { id: toId },
+      });
+
+      if (fromUser?.balance < amount) throw new Error("insufficeint funds");
+
+      if (!toUser) throw new Error("recepient doesn't exist");
+      if (!fromUser) throw new Error("sender doesn't exit");
+      if (toUser.currency != fromUser.currency)
+        throw new Error(`currency doesn't match`);
+
+      const senderBalance = await tx.wallet.update({
+        where: { id: fromId },
+        data: { balance: { decrement: amount } },
+      });
+      const receiverBalance = await tx.wallet.update({
+        where: { id: toId },
+        data: { balance: { increment: amount } },
+      });
+
+      // Transaction log
+
+      const log = await tx.transactionLog.create({
+        data: {
+          fromId,
+          toId,
+          amount,
+        },
+      });
+
+      return {
+        status: "success",
+        log,
+        senderBalance: senderBalance.balance,
+        receiverBalance: receiverBalance.balance,
+        currency: senderBalance.currency,
+      };
+    }, {maxWait: 5000, timeout: 10000});
+  };
+
+  const res = await transferFunds(1, 2, 50);
+  console.log(res);
+}
+
+```
 
 ---
 

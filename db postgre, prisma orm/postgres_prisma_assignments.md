@@ -2367,6 +2367,400 @@ model Comment {
 - Add full-text search on card title and description using PostgreSQL's `tsvector` and `tsquery` — expose it via `GET /cards?search=keyword`
 - Write a database backup script that exports the entire database to a JSON file and can re-import it — useful for understanding the data structure at a meta level
 
+```typescript
+--Backend.ts
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+import express, { Request, Response } from "express";
+import {
+  Board,
+  Card,
+  List,
+  PrismaClient,
+  User,
+  Workspace,
+} from "../generated/prisma/client";
+
+import { extendedPrisma } from "../db/prisma";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+
+
+const prisma = extendedPrisma;
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// ! Register the JSON middleware
+app.use(express.json());
+
+// ! create user
+
+app.post("/user", async (req: Request, res: Response) => {
+  const { email, name } = req.body as User;
+
+  try {
+    await prisma.user.create({
+      data: {
+        email,
+        name,
+      },
+    });
+  } catch (error) {
+    res.send({ error, msg: "Unexpected error occured" });
+  }
+});
+
+// ! get all users
+
+app.get("/users", async (req: Request, res: Response) => {
+  try {
+    const users = await prisma.user.findMany({});
+    res.send(users);
+  } catch (error) {
+    res.send({ error, msg: "unexpected error" });
+  }
+});
+
+// ! create Workspace
+
+app.post("/workspace", async (req: Request, res: Response) => {
+  const { name, ownerId } = req.body as Workspace;
+
+  await prisma.workspace.create({
+    data: {
+      name,
+      ownerId,
+    },
+  });
+});
+
+// !  get all workspaces
+
+app.get("/workspaces", async (req: Request, res: Response) => {
+  const workspaces = await prisma.workspace.findMany({});
+
+  res.send(workspaces);
+});
+
+// !  get specific workspace
+
+app.get("/workspace/:id", async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+
+  const workspace = await prisma.workspace.findFirst({
+    where: {
+      id,
+    },
+  });
+  res.send(workspace);
+});
+
+// ! create board
+app.post("/board", async (req: Request, res: Response) => {
+  const { name, workspaceId } = req.body as Board;
+
+  await prisma.board.create({
+    data: {
+      name,
+      workspaceId,
+    },
+  });
+
+  // ! get all boards
+  app.get("/boards", async (req: Request, res: Response) => {
+    const allBoards = await prisma.board.findMany({});
+    res.send(allBoards);
+  });
+});
+
+// ! create list to specific board
+app.post("/board/:id/lists", async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  const { name, position } = req.body as List;
+
+  await prisma.list.create({
+    data: {
+      name,
+      boardId: id,
+      position,
+    },
+  });
+
+  res.json({ msg: `board with ${id} created successfully` });
+});
+
+// ! get specific board ordered by position lists.
+app.get("/board/:id", async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+
+  try {
+    const board = await prisma.board.findFirst({
+      where: { id },
+      include: {
+        lists: {
+          orderBy: { position: "asc" },
+        },
+      },
+    });
+    res.send(board);
+  } catch (e) {
+    res.send(e);
+  }
+});
+
+// !  get lists from specific board
+app.get("/list/:boardId", async (req: Request, res: Response) => {
+  const boardId = Number(req.params.boardId);
+
+  try {
+    const list = await prisma.list.findFirst({ where: { boardId } });
+    res.send(list);
+  } catch (e) {
+    res.send(e);
+  }
+});
+
+//  ! get a specific list
+app.get("/list/:id", async (req: Request, res: Response) => {
+  const listId = Number(req.params.id);
+  try {
+    const list = await prisma.list.findFirst({
+      where: {
+        id: listId,
+      },
+    });
+    res.send(list);
+  } catch (e) {
+    res.send({ e, msg: "Error occured" });
+  }
+});
+
+// !  add card to specific list
+app.post("/list/:id/card", async (req: Request, res: Response) => {
+  const listId = Number(req.params.id);
+  const { title, description, position, assigneeId, dueDate } =
+    req.body as Card;
+
+  await prisma.card.create({
+    data: {
+      title,
+      description,
+      dueDate,
+      position,
+      assigneeId,
+      listId,
+    },
+  });
+
+  res.send({ msg: "card added successfully" });
+});
+
+// ! move card to different list update: listId and position in one transaction.
+
+app.patch("/cards/:id/move", async (req: Request, res: Response) => {
+  const cardId = Number(req.params.id);
+
+  const card = await prisma.card.findUnique({ where: { id: cardId } });
+  if (!card) return res.send({ msg: "Error Card does not exist!" });
+  const { listId: currentListId, position: oldPosition } = card;
+
+  const { newListId, newPosition } = req.body;
+
+  try {
+    const prevCard = await prisma.card.findFirst({
+      where: {
+        listId: newListId,
+        position: { lt: newPosition },
+      },
+      orderBy: {
+        position: "desc",
+      },
+    });
+
+    const prevPosition = !prevCard ? 0 : prevCard.position;
+
+    await prisma.card.update({
+      where: { id: cardId },
+      data: {
+        listId: newListId,
+        position: (prevPosition + newPosition) / 2.0,
+      },
+    });
+    res.json({ msg: "updated successfully" });
+  } catch (error) {
+    res.send({ error, msg: "Error occured" });
+  }
+});
+
+// ! cards with different conditions
+
+app.get("/cards", async (req: Request, res: Response) => {
+  const { assignee, due } = req.query;
+
+  let dueFilter = {};
+
+  if (due === "overdue") {
+    dueFilter = {
+      dueDate: { lt: new Date() },
+      completedAt: null,
+    };
+  } else if (due) {
+    const parsedDate = new Date(due as string);
+    if (!isNaN(parsedDate.getTime())) {
+      dueFilter = { dueDate: parsedDate };
+    }
+  }
+
+  try {
+    const cards = await prisma.card.findMany({
+      where: {
+        assigneeId: assignee ? Number(assignee) : {},
+        ...dueFilter,
+      },
+    });
+
+    res.status(200).send(cards);
+  } catch (error) {
+    res.send({ error, msg: "Error occured" });
+  }
+});
+
+// ! Stats
+
+app.get("/workspaces/:id/stats", async (req: Request, res: Response) => {
+  const workspaceId = req.params.id;
+
+  if (
+    !workspaceId ||
+    workspaceId === undefined ||
+    workspaceId === "" ||
+    isNaN(Number(workspaceId))
+  )
+    return res
+      .status(400)
+      .json({ msg: "route parameter not found or improper format" });
+
+  try {
+    const totalCards = await prisma.$queryRaw`SELECT
+  COUNT(*) AS total_cards,
+  COUNT(*) FILTER (WHERE card."completedAt" IS NOT NULL) AS completed_cards,
+  COUNT(*) FILTER (WHERE card."dueDate" < NOW() AND card."completedAt" IS NULL) AS overdue_cards,
+  ROUND(
+    (COUNT(*) FILTER (WHERE card."completedAt" IS NOT NULL))::numeric 
+    / NULLIF(COUNT(*), 0) * 100, 
+    2
+  ) AS completion_rate
+FROM "Card" card
+JOIN "List" list ON list.id = card."listId"
+JOIN "Board" board ON board.id = list."boardId"
+WHERE board."workspaceId" = ${workspaceId}`;
+
+    // const totalCards = await prisma.$queryRaw`select count(*) from "Card"`;
+  } catch (error) {
+    res.status(404).send(error);
+  }
+});
+
+// ! soft delete
+
+// const softDeleteHandler = async ({ operation, args, query }: any) => {
+//   if (operation === "delete") {
+//     args.where = args.where ?? {};
+//     if (args.where.deletedAt !== undefined && args.where.deletedAt !== null) {
+//       throw new Error("Record already deleted");
+//     }
+//     return query({ ...args, data: { deletedAt: new Date() } });
+//   }
+
+//   const readOps = ["findMany", "findFirst", "findUnique", "count", "aggregate"];
+//   if (readOps.includes(operation)) {
+//     args.where = args.where ?? {};
+//     if (args.where.deletedAt === undefined) {
+//       args.where.deletedAt = null;
+//     }
+//   }
+
+//   if (operation === "update" || operation === "updateMany") {
+//     args.data = args.data || {};
+//     args.data.updatedAt = new Date();
+
+//     args.where = args.where ?? {};
+//     if (args.where.deletedAt === undefined) {
+//       args.where.deletedAt = null;
+//     }
+//   }
+
+//   return query(args);
+// };
+
+// const extendedPrisma = prisma.$extends({
+//   query: {
+//     card: { $allOperations: softDeleteHandler },
+//     board: { $allOperations: softDeleteHandler },
+//   },
+// });
+
+// end space
+
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+});
+
+// prisma.ts
+import { PrismaClient } from "../generated/prisma/client";
+import "dotenv/config";
+
+import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
+
+const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+
+const prisma = new PrismaClient({ adapter });
+
+const softDeleteHandler = async ({ operation, args, query }: any) => {
+  if (operation === "delete") {
+    args.where = args.where ?? {};
+    if (args.where.deletedAt !== undefined && args.where.deletedAt !== null) {
+      throw new Error("Record already deleted");
+    }
+    return query({ ...args, data: { deletedAt: new Date() } });
+  }
+
+  const readOps = ["findMany", "findFirst", "findUnique", "count", "aggregate"];
+  if (readOps.includes(operation)) {
+    args.where = args.where ?? {};
+    if (args.where.deletedAt === undefined) {
+      args.where.deletedAt = null;
+    }
+  }
+
+  if (operation === "update" || operation === "updateMany") {
+    args.data = args.data || {};
+    args.data.updatedAt = new Date();
+
+    args.where = args.where ?? {};
+    if (args.where.deletedAt === undefined) {
+      args.where.deletedAt = null;
+    }
+  }
+
+  return query(args);
+};
+
+export const extendedPrisma = prisma.$extends({
+  query: {
+    card: { $allOperations: softDeleteHandler },
+    board: { $allOperations: softDeleteHandler },
+  },
+});
+
+
+```
+
 ---
 
 ## Review Checklist (Universal — Apply to Every Assignment)

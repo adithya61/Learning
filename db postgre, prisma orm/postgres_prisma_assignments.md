@@ -1,5 +1,9 @@
 # PostgreSQL & Prisma — Assignment Track
 
+## Codebase here:
+https://github.com/adithya61/prisma_assignment_code
+
+
 **Goal:** Build genuine understanding of relational databases and Prisma ORM before touching auth.  
 **Structure:** Part 1 is pure PostgreSQL (raw SQL, no ORM). Part 2 is pure Prisma. Part 3 combines both.  
 **Why this order:** You need to know what Prisma is doing _for you_ before you use it. If you've only ever used Prisma, you won't understand what a JOIN is, why indexes matter, or what a transaction actually does. Part 1 builds that foundation.
